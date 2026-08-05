@@ -1,0 +1,32 @@
+{
+  "name": "ekivibes-backend",
+  "version": "1.0.0",
+  "description": "Ekivibes - Tienda de equitación Colombia",
+  "scripts": {
+    "build": "medusa build",
+    "start": "medusa start",
+    "dev": "medusa develop",
+    "seed": "medusa exec ./src/scripts/seed.ts"
+  },
+  "dependencies": {
+    "@medusajs/medusa": "2.8.3",
+    "@medusajs/framework": "2.8.3",
+    "@medusajs/admin-bundler": "2.8.3",
+    "@medusajs/cache-inmemory": "2.8.3",
+    "@medusajs/event-bus-local": "2.8.3",
+    "@medusajs/file-local": "2.8.3",
+    "@medusajs/workflow-engine-inmemory": "2.8.3",
+    "pg": "^8.13.3"
+  },
+  "devDependencies": {
+    "@medusajs/test-utils": "2.8.3",
+    "@swc/core": "^1.5.7",
+    "@swc/jest": "^0.2.36",
+    "@types/node": "^20.0.0",
+    "jest": "^29.7.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
