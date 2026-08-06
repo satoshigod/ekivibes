@@ -4,8 +4,9 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npx medusa db:migrate && medusa start",
+    "startCommand": "npx medusa db:migrate && npx medusa start",
     "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
