@@ -121,9 +121,8 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
           data: {
             session_id: transaction.reference?.split("_")[0],
             amount: transaction.amount_in_cents,
-            wompi_status: transaction.status,
             transaction_id: transaction.id,
-          },
+          } as any,
         }
       }
 
@@ -132,8 +131,7 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
           action: "failed",
           data: {
             session_id: transaction.reference?.split("_")[0],
-            wompi_status: transaction.status,
-          },
+          } as any,
         }
       }
     } catch (e) {
