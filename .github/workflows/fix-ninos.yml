@@ -23,21 +23,11 @@ jobs:
           TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
           echo "Token OK"
 
-          echo ">> Asociando VH Ninos al sales channel..."
-          curl -s -X POST "$BASE/admin/products/$VH_ID" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"sales_channels\":[{\"id\":\"$SC_ID\"}]}" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("VH SC:",[s["id"] for s in d.get("product",{}).get("sales_channels",[])])'
+          echo ">> Asociando al sales channel..."
+          curl -s -X POST "$BASE/admin/products/$VH_ID" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"sales_channels\":[{\"id\":\"$SC_ID\"}]}" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("VH SC:",[s["id"] for s in d.get("product",{}).get("sales_channels",[])])'
+          curl -s -X POST "$BASE/admin/products/$MLV_ID" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"sales_channels\":[{\"id\":\"$SC_ID\"}]}" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("MLV SC:",[s["id"] for s in d.get("product",{}).get("sales_channels",[])])'
 
-          echo ">> Asociando MLV Ninos al sales channel..."
-          curl -s -X POST "$BASE/admin/products/$MLV_ID" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"sales_channels\":[{\"id\":\"$SC_ID\"}]}" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("MLV SC:",[s["id"] for s in d.get("product",{}).get("sales_channels",[])])'
-
-          echo "=== VERIFICANDO ==="
-          sleep 2
-          curl -s "$BASE/store/products?handle=chaleco-airbag-vh-ninos&region_id=$REGION_ID" \
-            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("VH found:",len(d.get("products",[])))'
-          curl -s "$BASE/store/products?handle=chaleco-airbag-mlv3-h-ninos&region_id=$REGION_ID" \
-            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("MLV found:",len(d.get("products",[])))'
+          sleep 3
+          echo "=== STORE API ==="
+          curl -s "$BASE/store/products?handle=chaleco-airbag-vh-ninos&region_id=$REGION_ID" -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("VH found:",len(d.get("products",[])));print(str(d)[:200])'
+          curl -s "$BASE/store/products?handle=chaleco-airbag-mlv3-h-ninos&region_id=$REGION_ID" -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("MLV found:",len(d.get("products",[])));print(str(d)[:200])'
