@@ -25,7 +25,8 @@
     "@medusajs/admin-sdk": "2.18.0",
     "@medusajs/cli": "2.18.0",
     "@medusajs/framework": "2.18.0",
-    "@medusajs/medusa": "2.18.0"
+    "@medusajs/medusa": "2.18.0",
+    "medusa-file-cloudinary": "1.0.3"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.18.0",
