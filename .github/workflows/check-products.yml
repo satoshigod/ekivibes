@@ -20,17 +20,19 @@ jobs:
 
           for ID in "prod_01KZPGA9173EFNVPTRM4ZFKHS2" "prod_01KZPGKJGYE9A7MCANTS6V0Z97"; do
             PROD=$(curl -s "$BASE/admin/products/$ID" -H "Authorization: Bearer $TOKEN")
-            echo "$PROD" | python3 -c '
-import sys,json
-d=json.load(sys.stdin)["product"]
+            echo "$PROD" | python3 << 'PYEOF'
+import sys, json
+d = json.load(sys.stdin)["product"]
 print("=== PRODUCTO ===")
 print("ID:", d["id"])
 print("Title:", d["title"])
 print("Handle:", d["handle"])
 print("Status:", d["status"])
-print("Sales channels:", [s["id"] for s in d.get("sales_channels",[])])
-print("Options:", [(o["id"], o["title"], [v["value"] for v in o.get("values",[])]) for o in d.get("options",[])])
-print("Variants:", [(v["id"], v["title"], v.get("sku")) for v in d.get("variants",[])])
-print("Prices:", [(v["title"], [p for p in v.get("prices",[])]) for v in d.get("variants",[])])
-'
+sc = [s["id"] for s in d.get("sales_channels", [])]
+print("Sales channels:", sc)
+opts = [(o["id"], o["title"], [v["value"] for v in o.get("values", [])]) for o in d.get("options", [])]
+print("Options:", opts)
+vars_info = [(v["id"], v["title"], v.get("sku"), [p.get("amount") for p in v.get("prices", [])]) for v in d.get("variants", [])]
+print("Variants:", vars_info)
+PYEOF
           done
