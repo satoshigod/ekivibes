@@ -23,8 +23,8 @@ export default async function fixNinos({ container }: ExecArgs) {
     filters: { id: VH_NINOS_ID },
   })
 
-  if (existingVH?.[0]?.variants?.length > 0 && existingVH[0].variants[0].prices?.length > 0) {
-    console.log("VH Niños ya tiene variantes y precios - skipping")
+  if ((existingVH?.[0] as any)?.variants?.length > 0) {
+    console.log("VH Niños ya tiene variantes - skipping")
   } else {
     await fixProduct(container, query, {
       productId: VH_NINOS_ID,
@@ -43,8 +43,8 @@ export default async function fixNinos({ container }: ExecArgs) {
     filters: { id: MLV_NINOS_ID },
   })
 
-  if (existingMLV?.[0]?.variants?.length > 0 && existingMLV[0].variants[0].prices?.length > 0) {
-    console.log("MLV3-H Niños ya tiene variantes y precios - skipping")
+  if ((existingMLV?.[0] as any)?.variants?.length > 0) {
+    console.log("MLV3-H Niños ya tiene variantes - skipping")
   } else {
     await fixProduct(container, query, {
       productId: MLV_NINOS_ID,
