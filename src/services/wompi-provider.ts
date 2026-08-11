@@ -1,4 +1,4 @@
-import { AbstractPaymentProvider } from "@medusajs/framework/utils"
+import { AbstractPaymentProvider, ModuleProvider } from "@medusajs/framework/utils"
 import {
   InitiatePaymentInput,
   InitiatePaymentOutput,
@@ -28,7 +28,7 @@ type WompiOptions = {
   env: string
 }
 
-export default class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> {
+class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> {
   static identifier = "wompi"
 
   protected options_: WompiOptions
@@ -130,3 +130,7 @@ export default class WompiPaymentProviderService extends AbstractPaymentProvider
     }
   }
 }
+
+export default ModuleProvider("wompi", {
+  services: [WompiPaymentProviderService],
+})
