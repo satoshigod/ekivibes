@@ -41,10 +41,12 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
   async initiatePayment(
     input: InitiatePaymentInput
   ): Promise<InitiatePaymentOutput> {
+    // amount de Medusa ya viene en centavos (unidad menor de la moneda)
+    // Se pasa directo al widget de Wompi sin multiplicar
     return {
-      id: "wompi-session",
+      id: `wompi-${Date.now()}`,
       data: {
-        amount: input.amount,
+        amount: input.amount,           // ya en centavos — NO multiplicar x100 en el frontend
         currency_code: input.currency_code,
         public_key: this.options_.publicKey || process.env.WOMPI_PUBLIC_KEY,
         env: this.options_.env || process.env.WOMPI_ENV || "test",
@@ -55,79 +57,89 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
   async authorizePayment(
     input: AuthorizePaymentInput
   ): Promise<AuthorizePaymentOutput> {
-    return {
-      status: "authorized",
-      data: input.data || {},
-    }
+    // Wompi confirma via webhook; si llega aquí el pago ya fue aprobado
+    const status = (input.data?.wompi_status as string) === "APPROVED"
+      ? "authorized"
+      : "pending"
+    return { status: status as any, data: input.data || {} }
   }
 
-  async cancelPayment(
-    input: CancelPaymentInput
-  ): Promise<CancelPaymentOutput> {
-    return {
-      data: input.data || {},
-    }
+  async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
+    return { data: input.data || {} }
   }
 
-  async capturePayment(
-    input: CapturePaymentInput
-  ): Promise<CapturePaymentOutput> {
-    return {
-      data: input.data || {},
-    }
+  async capturePayment(input: CapturePaymentInput): Promise<CapturePaymentOutput> {
+    // Wompi captura automáticamente al aprobar
+    return { data: input.data || {} }
   }
 
-  async deletePayment(
-    input: DeletePaymentInput
-  ): Promise<DeletePaymentOutput> {
-    return {
-      data: input.data || {},
-    }
+  async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
+    return { data: input.data || {} }
   }
 
   async getPaymentStatus(
     input: GetPaymentStatusInput
   ): Promise<GetPaymentStatusOutput> {
-    const status = (input.data?.status as string) || "pending"
-    return {
-      status: status as any,
+    const wompiStatus = input.data?.wompi_status as string
+    const statusMap: Record<string, string> = {
+      APPROVED: "captured",
+      DECLINED: "error",
+      VOIDED: "canceled",
+      ERROR: "error",
     }
+    return { status: (statusMap[wompiStatus] || "pending") as any }
   }
 
-  async refundPayment(
-    input: RefundPaymentInput
-  ): Promise<RefundPaymentOutput> {
-    return {
-      data: input.data || {},
-    }
+  async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
+    return { data: input.data || {} }
   }
 
   async retrievePayment(
     input: RetrievePaymentInput
   ): Promise<RetrievePaymentOutput> {
-    return {
-      data: input.data || {},
-    }
+    return { data: input.data || {} }
   }
 
-  async updatePayment(
-    input: UpdatePaymentInput
-  ): Promise<UpdatePaymentOutput> {
-    return {
-      data: input.data || {},
-    }
+  async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
+    return { data: input.data || {} }
   }
 
-  async getWebhookActionAndData(
-    data: {
-      data: Record<string, unknown>
-      rawData: string | Buffer
-      headers: Record<string, unknown>
+  async getWebhookActionAndData(data: {
+    data: Record<string, unknown>
+    rawData: string | Buffer
+    headers: Record<string, unknown>
+  }): Promise<WebhookActionResult> {
+    try {
+      const event = data.data as any
+      const transaction = event?.data?.transaction
+
+      if (!transaction) return { action: "not_supported" }
+
+      if (transaction.status === "APPROVED") {
+        return {
+          action: "authorized",
+          data: {
+            session_id: transaction.reference?.split("_")[0],
+            amount: transaction.amount_in_cents,
+            wompi_status: transaction.status,
+            transaction_id: transaction.id,
+          },
+        }
+      }
+
+      if (transaction.status === "DECLINED" || transaction.status === "ERROR") {
+        return {
+          action: "failed",
+          data: {
+            session_id: transaction.reference?.split("_")[0],
+            wompi_status: transaction.status,
+          },
+        }
+      }
+    } catch (e) {
+      // malformed webhook
     }
-  ): Promise<WebhookActionResult> {
-    return {
-      action: "not_supported",
-    }
+    return { action: "not_supported" }
   }
 }
 
