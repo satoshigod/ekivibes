@@ -14,22 +14,39 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     },
   },
-  // Módulos con Redis cuando REDIS_URL está disponible (producción),
-  // si no, Medusa usa versiones en memoria automáticamente.
-  modules: process.env.REDIS_URL
-    ? [
-        {
-          resolve: "@medusajs/medusa/cache-redis",
-          options: { redisUrl: process.env.REDIS_URL },
-        },
-        {
-          resolve: "@medusajs/medusa/event-bus-redis",
-          options: { redisUrl: process.env.REDIS_URL },
-        },
-        {
-          resolve: "@medusajs/medusa/workflow-engine-redis",
-          options: { redis: { url: process.env.REDIS_URL } },
-        },
-      ]
-    : [],
+  modules: [
+    ...(process.env.REDIS_URL
+      ? [
+          {
+            resolve: "@medusajs/medusa/cache-redis",
+            options: { redisUrl: process.env.REDIS_URL },
+          },
+          {
+            resolve: "@medusajs/medusa/event-bus-redis",
+            options: { redisUrl: process.env.REDIS_URL },
+          },
+          {
+            resolve: "@medusajs/medusa/workflow-engine-redis",
+            options: { redis: { url: process.env.REDIS_URL } },
+          },
+        ]
+      : []),
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            resolve: "./src/services/wompi-provider",
+            id: "wompi",
+            options: {
+              publicKey: process.env.WOMPI_PUBLIC_KEY,
+              privateKey: process.env.WOMPI_PRIVATE_KEY,
+              integritySecret: process.env.WOMPI_INTEGRITY_SECRET,
+              env: process.env.WOMPI_ENV || "test",
+            },
+          },
+        ],
+      },
+    },
+  ],
 })
