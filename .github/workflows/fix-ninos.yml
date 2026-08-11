@@ -7,26 +7,58 @@ jobs:
   fix-ninos:
     runs-on: ubuntu-latest
     steps:
-      - name: Fix sales channel stock location link
+      - name: Link inventory items to variants
         env:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
         run: |
           BASE="https://ekivibes-production.up.railway.app"
-          SC_ID="sc_01KZPAP849X2E6DFPE4GDAG7MC"
           LOCATION_ID="sloc_01KZPAFBNMW4WBK5VRZQA5G1C2"
 
           LOGIN=$(curl -s -X POST "$BASE/auth/user/emailpass" -H "Content-Type: application/json" --data-raw "{\"email\":\"${MEDUSA_EMAIL}\",\"password\":\"${MEDUSA_PASSWORD}\"}")
           TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
           echo "Token OK"
 
-          echo "=== Stock locations del sales channel ==="
-          curl -s "$BASE/admin/stock-locations?sales_channel_id=$SC_ID" \
-            -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin);[print(l["id"],l["name"]) for l in d.get("stock_locations",[])]'
+          PRODS=$(curl -s "$BASE/admin/products?limit=50" -H "Authorization: Bearer $TOKEN")
+          PROD_IDS=$(echo "$PRODS" | python3 -c 'import sys,json;[print(p["id"]) for p in json.load(sys.stdin).get("products",[])]')
 
-          echo "=== Asociando BODEGA MEDELLIN al sales channel ==="
-          RES=$(curl -s -X POST "$BASE/admin/stock-locations/$LOCATION_ID/sales-channels" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"add\":[\"$SC_ID\"]}")
-          echo "Resp: $(echo $RES | head -c 200)"
+          for PROD_ID in $PROD_IDS; do
+            PROD=$(curl -s "$BASE/admin/products/$PROD_ID" -H "Authorization: Bearer $TOKEN")
+            TITLE=$(echo "$PROD" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("product",{}).get("title",""))')
+            echo ">> $TITLE"
+
+            VARIANTS=$(echo "$PROD" | python3 -c 'import sys,json;[print(v["id"],v.get("sku","no-sku")) for v in json.load(sys.stdin).get("product",{}).get("variants",[])]')
+
+            while IFS=" " read -r VAR_ID VAR_SKU; do
+              [ -z "$VAR_ID" ] && continue
+
+              # Ver inventory items ya enlazados a esta variante
+              LINKED=$(curl -s "$BASE/admin/variants/$VAR_ID/inventory-items" -H "Authorization: Bearer $TOKEN")
+              LINKED_COUNT=$(echo "$LINKED" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len(d.get("variant_inventory_items",d.get("inventory_items",[]))))')
+
+              if [ "$LINKED_COUNT" = "0" ]; then
+                # Crear inventory item y enlazarlo
+                INV=$(curl -s -X POST "$BASE/admin/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"sku\":\"inv-$VAR_ID\",\"requires_shipping\":true}")
+                INV_ID=$(echo "$INV" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("inventory_item",{}).get("id",""))')
+
+                if [ -n "$INV_ID" ]; then
+                  # Enlazar a la variante
+                  curl -s -X POST "$BASE/admin/products/variants/$VAR_ID/inventory-items" \
+                    -H "Authorization: Bearer $TOKEN" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"inventory_item_id\":\"$INV_ID\",\"required_quantity\":1}" > /dev/null
+
+                  # Asignar stock en bodega
+                  curl -s -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" \
+                    -H "Authorization: Bearer $TOKEN" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}" > /dev/null
+
+                  echo "  + creado y enlazado: $VAR_SKU ($VAR_ID) -> $INV_ID"
+                fi
+              else
+                echo "  ~ ya enlazado: $VAR_SKU ($LINKED_COUNT items)"
+              fi
+            done <<< "$VARIANTS"
+          done
+          echo "=== DONE ==="
