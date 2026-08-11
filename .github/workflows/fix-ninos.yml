@@ -18,15 +18,18 @@ jobs:
 
           LOGIN=$(curl -s -X POST "$BASE/auth/user/emailpass" -H "Content-Type: application/json" --data-raw "{\"email\":\"${MEDUSA_EMAIL}\",\"password\":\"${MEDUSA_PASSWORD}\"}")
           TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
+          echo "Token OK"
 
-          echo "=== ADMIN: VH NINOS ==="
-          curl -s "$BASE/admin/products/prod_01KZPGZYT740ZCEQBV4WDZ2ZXT" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("handle:",d.get("handle"));print("status:",d.get("status"));[print("VAR:",v["id"],v["title"],v.get("sku"),"prices:",[p.get("currency_code"),p.get("amount"),p.get("region_id")] for p in v.get("prices",[])]) for v in d.get("variants",[])]'
+          echo "=== ADMIN VH NINOS ==="
+          VH=$(curl -s "$BASE/admin/products/prod_01KZPGZYT740ZCEQBV4WDZ2ZXT" -H "Authorization: Bearer $TOKEN")
+          echo "$VH" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("handle:",d.get("handle"));print("variants:",len(d.get("variants",[])));[print("  ",v["id"],v["title"],v.get("sku"),v.get("prices",[])) for v in d.get("variants",[])]'
 
-          echo "=== ADMIN: MLV NINOS ==="
-          curl -s "$BASE/admin/products/prod_01KZPH5JBJCFTASQ5EMVNQZMDB" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("handle:",d.get("handle"));print("status:",d.get("status"));[print("VAR:",v["id"],v["title"],v.get("sku"),"prices:",[p.get("currency_code"),p.get("amount"),p.get("region_id")] for p in v.get("prices",[])]) for v in d.get("variants",[])]'
+          echo "=== ADMIN MLV NINOS ==="
+          MLV=$(curl -s "$BASE/admin/products/prod_01KZPH5JBJCFTASQ5EMVNQZMDB" -H "Authorization: Bearer $TOKEN")
+          echo "$MLV" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("handle:",d.get("handle"));print("variants:",len(d.get("variants",[])));[print("  ",v["id"],v["title"],v.get("sku"),v.get("prices",[])) for v in d.get("variants",[])]'
 
-          echo "=== STORE API sin region ==="
-          curl -s "$BASE/store/products?handle=chaleco-airbag-vh-ninos" -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("found:",len(d.get("products",[])));print("raw:",str(d)[:300])'
+          echo "=== STORE API VH ==="
+          curl -s "$BASE/store/products?handle=chaleco-airbag-vh-ninos&region_id=$REGION_ID" -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("found:",len(d.get("products",[])));print(str(d)[:400])'
 
-          echo "=== STORE API con region ==="
-          curl -s "$BASE/store/products?handle=chaleco-airbag-vh-ninos&region_id=$REGION_ID" -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("found:",len(d.get("products",[])));print("raw:",str(d)[:300])'
+          echo "=== STORE API MLV ==="
+          curl -s "$BASE/store/products?handle=chaleco-airbag-mlv3-h-ninos&region_id=$REGION_ID" -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("found:",len(d.get("products",[])));print(str(d)[:400])'
