@@ -14,87 +14,71 @@ jobs:
           MLV_ID="prod_01KZPGKJGYE9A7MCANTS6V0Z97"
           CHANNEL_ID="sc_01KZPAP849X2E6DFPE4GDAG7MC"
           LOCATION_ID="sloc_01KZPAFBNMW4WBK5VRZQA5G1C2"
+          SK="sk_6cc40dda6dca3d3ff3270b7fb59d0344716671144cef4085ce26d083468b1ca4"
 
-          echo ">> Login..."
-          TOKEN=$(curl -sf "$BASE/auth/user/emailpass" \
-            -H "Content-Type: application/json" \
-            -d "{\"email\":\"${{ secrets.MEDUSA_ADMIN_EMAIL }}\",\"password\":\"${{ secrets.MEDUSA_ADMIN_PASSWORD }}\"}" \
-            | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
-          echo "Token OK"
+          setup_product() {
+            PRODUCT_ID=$1
+            HANDLE=$2
+            DESC=$3
+            VAR_TITLE=$4
+            SKU=$5
+            PRICE=$6
 
-          for PRODUCT_ID in $VH_ID $MLV_ID; do
-            if [ "$PRODUCT_ID" = "$VH_ID" ]; then
-              HANDLE="chaleco-airbag-vh-ninos"
-              DESC="Chaleco airbag de equitación certificado CE para niños. Tela suave y elástica. Cartucho CO2 50cc. Talla niños XS (altura 125-135 cm)."
-              VAR_TITLE="XS"
-              SKU="VH-NINOS-XS"
-              PRICE=1750000
-            else
-              HANDLE="chaleco-airbag-mlv3-h-ninos"
-              DESC="Chaleco airbag de equitación certificado CE para niños. Cubre cuello, pecho, espalda y coxis. Cartucho CO2 50cc. Talla niños 2XS (altura 125-135 cm)."
-              VAR_TITLE="2XS"
-              SKU="MLV3H-NINOS-2XS"
-              PRICE=1950000
-            fi
+            echo ">> $HANDLE"
 
-            echo ">> Configurando $HANDLE..."
-
-            # Actualizar handle, descripción, sales channel
-            curl -sf -X POST "$BASE/admin/products/$PRODUCT_ID" \
-              -H "Authorization: Bearer $TOKEN" \
+            curl -s -X POST "$BASE/admin/products/$PRODUCT_ID" \
+              -H "x-medusa-access-token: $SK" \
               -H "Content-Type: application/json" \
-              -d "{\"handle\":\"$HANDLE\",\"description\":\"$DESC\",\"status\":\"published\",\"sales_channels\":[{\"id\":\"$CHANNEL_ID\"}]}" > /dev/null
-            echo "  handle y descripción OK"
+              -d "{\"handle\":\"$HANDLE\",\"description\":\"$DESC\",\"status\":\"published\",\"sales_channels\":[{\"id\":\"$CHANNEL_ID\"}]}"
+            echo "  handle OK"
 
-            # Obtener variantes actuales
-            PROD=$(curl -sf "$BASE/admin/products/$PRODUCT_ID" -H "Authorization: Bearer $TOKEN")
-            VAR_COUNT=$(echo $PROD | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len(d["product"].get("variants",[])))')
-            OPT_COUNT=$(echo $PROD | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len(d["product"].get("options",[])))')
+            PROD=$(curl -s "$BASE/admin/products/$PRODUCT_ID" -H "x-medusa-access-token: $SK")
+            VAR_COUNT=$(echo "$PROD" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len(d["product"].get("variants",[])))')
+            OPT_COUNT=$(echo "$PROD" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len(d["product"].get("options",[])))')
+            echo "  vars=$VAR_COUNT opts=$OPT_COUNT"
 
-            # Crear opción Talla si no existe
             if [ "$OPT_COUNT" = "0" ]; then
-              OPT=$(curl -sf -X POST "$BASE/admin/products/$PRODUCT_ID/options" \
-                -H "Authorization: Bearer $TOKEN" \
+              OPT=$(curl -s -X POST "$BASE/admin/products/$PRODUCT_ID/options" \
+                -H "x-medusa-access-token: $SK" \
                 -H "Content-Type: application/json" \
                 -d "{\"title\":\"Talla\",\"values\":[\"$VAR_TITLE\"]}")
-              OPT_ID=$(echo $OPT | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("product_option",{}).get("id","") or d.get("id",""))')
-              echo "  Opción Talla creada: $OPT_ID"
+              echo "  OPT: $OPT"
+              OPT_ID=$(echo "$OPT" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("product_option",{}).get("id","") or list(d.values())[0] if d else "")')
             else
-              OPT_ID=$(echo $PROD | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d["product"]["options"][0]["id"])')
-              echo "  Opción ya existe: $OPT_ID"
+              OPT_ID=$(echo "$PROD" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d["product"]["options"][0]["id"])')
             fi
+            echo "  opt_id=$OPT_ID"
 
-            # Crear o actualizar variante
             if [ "$VAR_COUNT" = "0" ]; then
-              VAR=$(curl -sf -X POST "$BASE/admin/products/$PRODUCT_ID/variants" \
-                -H "Authorization: Bearer $TOKEN" \
+              VAR=$(curl -s -X POST "$BASE/admin/products/$PRODUCT_ID/variants" \
+                -H "x-medusa-access-token: $SK" \
                 -H "Content-Type: application/json" \
                 -d "{\"title\":\"$VAR_TITLE\",\"sku\":\"$SKU\",\"manage_inventory\":true,\"options\":{\"$OPT_ID\":\"$VAR_TITLE\"},\"prices\":[{\"amount\":$PRICE,\"currency_code\":\"cop\"}]}")
-              VAR_ID=$(echo $VAR | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("variant",{}).get("id","") or d.get("id",""))')
-              echo "  Variante creada: $VAR_ID"
+              echo "  VAR: $VAR"
             else
-              VAR_ID=$(echo $PROD | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d["product"]["variants"][0]["id"])')
-              curl -sf -X POST "$BASE/admin/products/$PRODUCT_ID/variants/$VAR_ID" \
-                -H "Authorization: Bearer $TOKEN" \
+              VAR_ID=$(echo "$PROD" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d["product"]["variants"][0]["id"])')
+              curl -s -X POST "$BASE/admin/products/$PRODUCT_ID/variants/$VAR_ID" \
+                -H "x-medusa-access-token: $SK" \
                 -H "Content-Type: application/json" \
-                -d "{\"title\":\"$VAR_TITLE\",\"sku\":\"$SKU\",\"manage_inventory\":true,\"prices\":[{\"amount\":$PRICE,\"currency_code\":\"cop\"}]}" > /dev/null
-              echo "  Variante actualizada: $VAR_ID"
+                -d "{\"title\":\"$VAR_TITLE\",\"sku\":\"$SKU\",\"manage_inventory\":true,\"prices\":[{\"amount\":$PRICE,\"currency_code\":\"cop\"}]}"
+              echo "  variante actualizada: $VAR_ID"
             fi
 
-            # Inventory item + stock
-            INV=$(curl -sf -X POST "$BASE/admin/inventory-items" \
-              -H "Authorization: Bearer $TOKEN" \
+            INV=$(curl -s -X POST "$BASE/admin/inventory-items" \
+              -H "x-medusa-access-token: $SK" \
               -H "Content-Type: application/json" \
               -d "{\"sku\":\"$SKU\",\"requires_shipping\":true}")
-            INV_ID=$(echo $INV | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("inventory_item",{}).get("id",""))')
+            INV_ID=$(echo "$INV" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("inventory_item",{}).get("id",""))')
+            echo "  inv_id=$INV_ID"
             if [ -n "$INV_ID" ]; then
-              curl -sf -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" \
-                -H "Authorization: Bearer $TOKEN" \
+              curl -s -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" \
+                -H "x-medusa-access-token: $SK" \
                 -H "Content-Type: application/json" \
-                -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}" > /dev/null
-              echo "  Inventario 100 unidades OK"
+                -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}"
+              echo "  stock OK"
             fi
+          }
 
-            echo "  $HANDLE listo"
-          done
-          echo "=== Todo listo ==="
+          setup_product "$VH_ID" "chaleco-airbag-vh-ninos" "Chaleco airbag CE para ninos. Talla XS (125-135cm)." "XS" "VH-NINOS-XS" 1750000
+          setup_product "$MLV_ID" "chaleco-airbag-mlv3-h-ninos" "Chaleco airbag CE para ninos. Talla 2XS (125-135cm)." "2XS" "MLV3H-NINOS-2XS" 1950000
+          echo "=== listo ==="
