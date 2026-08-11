@@ -18,7 +18,6 @@ import {
   RetrievePaymentOutput,
   UpdatePaymentInput,
   UpdatePaymentOutput,
-  ProviderWebhookPayload,
   WebhookActionResult,
 } from "@medusajs/framework/types"
 
@@ -120,7 +119,11 @@ export default class WompiPaymentProviderService extends AbstractPaymentProvider
   }
 
   async getWebhookActionAndData(
-    payload: ProviderWebhookPayload
+    data: {
+      data: Record<string, unknown>
+      rawData: string | Buffer
+      headers: Record<string, unknown>
+    }
   ): Promise<WebhookActionResult> {
     return {
       action: "not_supported",
