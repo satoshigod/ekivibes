@@ -50,17 +50,15 @@ async function setupProduct(
   }])
   console.log(`  ✓ handle y descripción`)
 
-  // 2. Obtener producto con options y variants
-  const product = await productService.retrieveProduct(productId, {
-    relations: ["variants", "options"],
-  })
+  // 2. Obtener producto sin relations (Medusa v2 no acepta relations en retrieve)
+  const product = await productService.retrieveProduct(productId)
+  console.log(`  ~ variants: ${product.variants?.length ?? 0}, options: ${product.options?.length ?? 0}`)
 
-  // 3. Crear opción Talla si no existe
+  // 3. Crear opción Talla
   let optionId: string
-  const existingOption = product.options?.find((o: any) => o.title === "Talla")
-  if (existingOption) {
-    optionId = existingOption.id
-    console.log(`  ~ Opción Talla ya existe: ${optionId}`)
+  if (product.options?.length > 0) {
+    optionId = product.options[0].id
+    console.log(`  ~ Opción ya existe: ${optionId}`)
   } else {
     const created = await productService.createProductOptions([{
       title: "Talla",
@@ -68,40 +66,34 @@ async function setupProduct(
       values: [variantTitle],
     }])
     optionId = Array.isArray(created) ? created[0].id : created.id
-    console.log(`  ✓ Opción Talla creada: ${optionId}`)
+    console.log(`  ✓ Opción creada: ${optionId}`)
   }
 
   // 4. Crear o actualizar variante
-  let variantId: string
-  const existingVariant = product.variants?.[0]
-  if (existingVariant) {
+  if (product.variants?.length > 0) {
+    const vid = product.variants[0].id
     await productService.updateProductVariants([{
-      id: existingVariant.id,
+      id: vid,
       title: variantTitle,
       sku,
       manage_inventory: true,
-      prices: [{ amount: price, currency_code: "cop" }],
     }])
-    variantId = existingVariant.id
-    console.log(`  ✓ Variante actualizada: ${variantId}`)
+    console.log(`  ✓ Variante actualizada: ${vid}`)
   } else {
     const created = await productService.createProductVariants([{
       title: variantTitle,
       sku,
       product_id: productId,
-      options: { [optionId]: variantTitle },
       manage_inventory: true,
-      prices: [{ amount: price, currency_code: "cop" }],
     }])
-    variantId = Array.isArray(created) ? created[0].id : created.id
-    console.log(`  ✓ Variante creada: ${variantId}`)
+    const vid = Array.isArray(created) ? created[0].id : created.id
+    console.log(`  ✓ Variante creada: ${vid}`)
   }
 
   // 5. Inventory item + stock
   try {
     const items = await inventoryService.createInventoryItems([{
       sku,
-      description: `${handle} - ${variantTitle}`,
       requires_shipping: true,
     }])
     const invId = Array.isArray(items) ? items[0].id : (items as any).id
@@ -113,16 +105,5 @@ async function setupProduct(
     console.log(`  ✓ Inventario 100 unidades`)
   } catch (e: any) {
     console.log(`  ~ Inventario: ${e.message}`)
-  }
-
-  // 6. Sales channel
-  try {
-    await productService.updateProducts([{
-      id: productId,
-      sales_channels: [{ id: CHANNEL_ID }],
-    }])
-    console.log(`  ✓ Sales channel OK`)
-  } catch (e: any) {
-    console.log(`  ~ Sales channel: ${e.message}`)
   }
 }
