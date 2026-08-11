@@ -9,22 +9,25 @@ export default async function fixNinos({ container }: ExecArgs) {
 
   console.log("=== fix-ninos ===")
 
-  const [allChannels] = await salesChannelService.listSalesChannels({})
+  const channelsRaw = await salesChannelService.listSalesChannels({})
+  const allChannels = Array.isArray(channelsRaw[0]) ? channelsRaw[0] : channelsRaw
   const channel = allChannels.find((c: any) =>
     c.name.toUpperCase().includes("EKIVIBE")
   ) || allChannels[0]
   console.log("Canal:", channel.name, channel.id)
 
-  const [locations] = await stockLocationService.listStockLocations({})
+  const locationsRaw = await stockLocationService.listStockLocations({})
+  const locations = Array.isArray(locationsRaw[0]) ? locationsRaw[0] : locationsRaw
   const location = locations.find((l: any) =>
     l.name.toUpperCase().includes("MEDELLIN")
   ) || locations[0]
   console.log("Bodega:", location.name, location.id)
 
-  const [products] = await productService.listProducts(
+  const productsRaw = await productService.listProducts(
     {},
     { relations: ["variants", "variants.options", "options", "options.values"] }
   )
+  const products = Array.isArray(productsRaw[0]) ? productsRaw[0] : productsRaw
 
   const vhNinos = products.find((p: any) =>
     p.title.includes("VH") && p.title.toLowerCase().includes("ni")
