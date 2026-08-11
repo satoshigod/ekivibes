@@ -9,21 +9,21 @@ export default async function fixNinos({ container }: ExecArgs) {
 
   console.log("=== fix-ninos ===")
 
-  const allChannels = await salesChannelService.listSalesChannels({})
+  const [allChannels] = await salesChannelService.listSalesChannels({})
   const channel = allChannels.find((c: any) =>
     c.name.toUpperCase().includes("EKIVIBE")
   ) || allChannels[0]
   console.log("Canal:", channel.name, channel.id)
 
-  const locations = await stockLocationService.listStockLocations({})
+  const [locations] = await stockLocationService.listStockLocations({})
   const location = locations.find((l: any) =>
     l.name.toUpperCase().includes("MEDELLIN")
   ) || locations[0]
   console.log("Bodega:", location.name, location.id)
 
-  const products = await productService.listProducts(
+  const [products] = await productService.listProducts(
     {},
-    { relations: ["variants", "options"] }
+    { relations: ["variants", "variants.options", "options", "options.values"] }
   )
 
   const vhNinos = products.find((p: any) =>
@@ -84,19 +84,19 @@ async function setupProduct(
   // 2. Crear opción Talla si no existe
   let option = product.options?.find((o: any) => o.title === "Talla")
   if (!option) {
-    const opts = await productService.createProductOptions([{
+    const created = await productService.createProductOptions([{
       title: "Talla",
       product_id: product.id,
       values: [variantTitle],
     }])
-    option = opts[0]
+    option = Array.isArray(created) ? created[0] : created
     console.log(`  ✓ Opción Talla creada`)
   }
 
   // 3. Crear o actualizar variante
   let variant = product.variants?.[0]
   if (!variant) {
-    const variants = await productService.createProductVariants([{
+    const created = await productService.createProductVariants([{
       title: variantTitle,
       sku,
       product_id: product.id,
@@ -104,7 +104,7 @@ async function setupProduct(
       manage_inventory: true,
       prices: [{ amount: price, currency_code: "cop" }],
     }])
-    variant = variants[0]
+    variant = Array.isArray(created) ? created[0] : created
     console.log(`  ✓ Variante ${variantTitle} creada: ${variant.id}`)
   } else {
     await productService.updateProductVariants([{
