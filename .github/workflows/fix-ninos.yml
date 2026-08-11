@@ -7,20 +7,24 @@ jobs:
   fix-ninos:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify store API
+      - name: Verify
+        env:
+          MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
+          MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
         run: |
           BASE="https://ekivibes-production.up.railway.app"
           REGION_ID="reg_01KZPA5VQ4345MB8FP453A5EED"
           PK="pk_3b5b6657ca34ef46e2b26e6b3ce00c63613f6fe3e6e327a0a8b5bbd19fcb657"
 
-          echo "=== VH NINOS ==="
-          curl -s "$BASE/store/products?handle=chaleco-airbag-vh-ninos&region_id=$REGION_ID&fields=id,handle,title,variants.id,variants.title,variants.calculated_price" \
-            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);p=d.get("products",[]);print("found:",len(p));[print(x["id"],x["handle"],[v["id"] for v in x.get("variants",[])]) for x in p]'
+          LOGIN=$(curl -s -X POST "$BASE/auth/user/emailpass" -H "Content-Type: application/json" --data-raw "{\"email\":\"${MEDUSA_EMAIL}\",\"password\":\"${MEDUSA_PASSWORD}\"}")
+          TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
 
-          echo "=== MLV NINOS ==="
-          curl -s "$BASE/store/products?handle=chaleco-airbag-mlv3-h-ninos&region_id=$REGION_ID&fields=id,handle,title,variants.id,variants.title,variants.calculated_price" \
-            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);p=d.get("products",[]);print("found:",len(p));[print(x["id"],x["handle"],[v["id"] for v in x.get("variants",[])]) for x in p]'
+          echo "=== API KEYS ==="
+          curl -s "$BASE/admin/api-keys" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin);[print(k["id"],k["title"],k["type"],"channels:",[s["id"] for s in k.get("sales_channels",[])]) for k in d.get("api_keys",[])]'
 
-          echo "=== TODOS LOS PRODUCTOS STORE ==="
-          curl -s "$BASE/store/products?region_id=$REGION_ID&fields=id,handle,title&limit=20" \
-            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);[print(p["id"],"|",p["handle"],"|",p["title"]) for p in d.get("products",[])]'
+          echo "=== STORE PRODUCTS sin PK ==="
+          curl -s "$BASE/store/products?region_id=$REGION_ID&limit=5" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(str(d)[:300])'
+
+          echo "=== STORE PRODUCTS con PK correcto ==="
+          curl -s "$BASE/store/products?region_id=$REGION_ID&limit=5" \
+            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("count:",d.get("count"));[print(p["id"],p["handle"]) for p in d.get("products",[])]'
