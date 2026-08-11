@@ -7,36 +7,23 @@ jobs:
   fix-ninos:
     runs-on: ubuntu-latest
     steps:
-      - name: Check handles
+      - name: Cleanup duplicate inventory
         env:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
         run: |
           BASE="https://ekivibes-production.up.railway.app"
-          PK="pk_3b5a6a9ce085bb5120a9b09c89e650604dae941aa324a34078ada7a038d04657"
-          REGION_ID="reg_01KZPA5VQ4345MB8FP453A5EED"
-          SC_ID="sc_01KZPAP849X2E6DFPE4GDAG7MC"
-
           LOGIN=$(curl -s -X POST "$BASE/auth/user/emailpass" -H "Content-Type: application/json" --data-raw "{\"email\":\"${MEDUSA_EMAIL}\",\"password\":\"${MEDUSA_PASSWORD}\"}")
           TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
+          echo "Token OK"
 
-          echo "=== TODOS LOS PRODUCTOS STORE ==="
-          curl -s "$BASE/store/products?region_id=$REGION_ID&limit=20&fields=id,handle,title" \
-            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);[print(p["id"],"|",p["handle"],"|",p["title"]) for p in d.get("products",[])]'
-
-          echo "=== HANDLE ADMIN VH NINOS ==="
-          curl -s "$BASE/admin/products/prod_01KZPGZYT740ZCEQBV4WDZ2ZXT" \
-            -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("handle:",d.get("handle"),"title:",d.get("title"))'
-
-          echo "=== HANDLE ADMIN MLV NINOS ==="
-          curl -s "$BASE/admin/products/prod_01KZPH5JBJCFTASQ5EMVNQZMDB" \
-            -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("handle:",d.get("handle"),"title:",d.get("title"))'
-
-          echo "=== FIX HANDLES SI ESTAN MAL ==="
-          curl -s -X POST "$BASE/admin/products/prod_01KZPGZYT740ZCEQBV4WDZ2ZXT" \
-            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -d '{"handle":"chaleco-airbag-vh-ninos"}' | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("VH nuevo handle:",d.get("handle"))'
-
-          curl -s -X POST "$BASE/admin/products/prod_01KZPH5JBJCFTASQ5EMVNQZMDB" \
-            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -d '{"handle":"chaleco-airbag-mlv3-h-ninos"}' | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("MLV nuevo handle:",d.get("handle"))'
+          # Borrar SKUs duplicados - dejar solo VH-NINOS-XS y MLV3H-NINOS-2XS
+          for SKU in "VH-NINOS-XS-2" "VH-NINOS-XS-3" "VH-NINOS-XS-4" "VH-NINOS-XS-5" "MLV3H-NINOS-2XS-2" "MLV3H-NINOS-2XS-3" "MLV3H-NINOS-2XS-4" "MLV3H-NINOS-2XS-5"; do
+            INV=$(curl -s "$BASE/admin/inventory-items?q=$SKU" -H "Authorization: Bearer $TOKEN")
+            INV_ID=$(echo "$INV" | python3 -c 'import sys,json;items=json.load(sys.stdin).get("inventory_items",[]);print(items[0]["id"] if items else "")')
+            if [ -n "$INV_ID" ]; then
+              curl -s -X DELETE "$BASE/admin/inventory-items/$INV_ID" -H "Authorization: Bearer $TOKEN" > /dev/null
+              echo "Borrado: $SKU ($INV_ID)"
+            fi
+          done
+          echo "=== Limpieza completada ==="
