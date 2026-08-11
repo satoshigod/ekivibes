@@ -27,22 +27,29 @@ jobs:
 
           add_variant() {
             PRODUCT_ID=$1 OPT_ID=$2 VAR_TITLE=$3 SKU=$4 PRICE=$5
-
             echo ">> $SKU"
 
-            # Agregar valor a la opcion
-            echo "  Agregando valor $VAR_TITLE a opcion $OPT_ID..."
-            curl -s -X POST "$BASE/admin/products/$PRODUCT_ID/options/$OPT_ID" \
-              -H "Authorization: Bearer $TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"values\":[\"$VAR_TITLE\"]}" | head -c 200
+            # Borrar opcion vieja
+            echo "  Borrando opcion $OPT_ID..."
+            curl -s -X DELETE "$BASE/admin/products/$PRODUCT_ID/options/$OPT_ID" \
+              -H "Authorization: Bearer $TOKEN" | head -c 100
             echo ""
 
-            # Crear variante
+            # Crear opcion nueva con valor correcto
+            echo "  Creando opcion Talla con valor $VAR_TITLE..."
+            NEW_OPT=$(curl -s -X POST "$BASE/admin/products/$PRODUCT_ID/options" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"title\":\"Talla\",\"values\":[\"$VAR_TITLE\"]}")
+            NEW_OPT_ID=$(echo "$NEW_OPT" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("product_option",{}).get("id",""))')
+            echo "  nueva opcion: $NEW_OPT_ID"
+            echo "  resp: $(echo $NEW_OPT | head -c 200)"
+
+            # Crear variante con la nueva opcion
             VAR=$(curl -s -X POST "$BASE/admin/products/$PRODUCT_ID/variants" \
               -H "Authorization: Bearer $TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{\"title\":\"$VAR_TITLE\",\"sku\":\"$SKU\",\"manage_inventory\":true,\"options\":{\"$OPT_ID\":\"$VAR_TITLE\"},\"prices\":[{\"amount\":$PRICE,\"currency_code\":\"cop\",\"region_id\":\"$REGION_ID\"}]}")
+              -d "{\"title\":\"$VAR_TITLE\",\"sku\":\"$SKU\",\"manage_inventory\":true,\"options\":{\"$NEW_OPT_ID\":\"$VAR_TITLE\"},\"prices\":[{\"amount\":$PRICE,\"currency_code\":\"cop\",\"region_id\":\"$REGION_ID\"}]}")
             VAR_ID=$(echo "$VAR" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("variant",{}).get("id",""))')
             echo "  variante: $VAR_ID"
             echo "  resp: $(echo $VAR | head -c 200)"
@@ -56,12 +63,12 @@ jobs:
             fi
             if [ -n "$INV_ID" ]; then
               curl -s -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}" > /dev/null
-              echo "  stock OK: $INV_ID"
+              echo "  stock OK"
             fi
           }
 
-          add_variant "$VH_ID" "$VH_OPT_ID" "XS" "VH-NINOS-XS-4" 1750000
-          add_variant "$MLV_ID" "$MLV_OPT_ID" "2XS" "MLV3H-NINOS-2XS-4" 1950000
+          add_variant "$VH_ID" "$VH_OPT_ID" "XS" "VH-NINOS-XS-5" 1750000
+          add_variant "$MLV_ID" "$MLV_OPT_ID" "2XS" "MLV3H-NINOS-2XS-5" 1950000
 
           echo "=== STORE API ==="
           sleep 5
