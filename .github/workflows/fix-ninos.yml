@@ -7,34 +7,20 @@ jobs:
   fix-ninos:
     runs-on: ubuntu-latest
     steps:
-      - name: Fix prices with region_id
-        env:
-          MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
-          MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
+      - name: Verify store API
         run: |
           BASE="https://ekivibes-production.up.railway.app"
-          VH_ID="prod_01KZPGZYT740ZCEQBV4WDZ2ZXT"
-          MLV_ID="prod_01KZPH5JBJCFTASQ5EMVNQZMDB"
-          VH_VAR_ID="variant_01KZSGCMBMY2S95CYYB8S5RZ4W"
-          MLV_VAR_ID="variant_01KZSGE1C0F33PNVZXDBXBR49G"
           REGION_ID="reg_01KZPA5VQ4345MB8FP453A5EED"
+          PK="pk_3b5b6657ca34ef46e2b26e6b3ce00c63613f6fe3e6e327a0a8b5bbd19fcb657"
 
-          LOGIN=$(curl -s -X POST "$BASE/auth/user/emailpass" -H "Content-Type: application/json" --data-raw "{\"email\":\"${MEDUSA_EMAIL}\",\"password\":\"${MEDUSA_PASSWORD}\"}")
-          TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
-          echo "Token OK"
+          echo "=== VH NINOS ==="
+          curl -s "$BASE/store/products?handle=chaleco-airbag-vh-ninos&region_id=$REGION_ID&fields=id,handle,title,variants.id,variants.title,variants.calculated_price" \
+            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);p=d.get("products",[]);print("found:",len(p));[print(x["id"],x["handle"],[v["id"] for v in x.get("variants",[])]) for x in p]'
 
-          echo ">> Actualizando precio VH Ninos con region_id..."
-          RES=$(curl -s -X POST "$BASE/admin/products/$VH_ID/variants/$VH_VAR_ID" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"prices\":[{\"amount\":1750000,\"currency_code\":\"cop\"},{\"amount\":1750000,\"currency_code\":\"cop\",\"rules\":{\"region_id\":\"$REGION_ID\"}}]}")
-          echo "VH: $(echo $RES | head -c 200)"
+          echo "=== MLV NINOS ==="
+          curl -s "$BASE/store/products?handle=chaleco-airbag-mlv3-h-ninos&region_id=$REGION_ID&fields=id,handle,title,variants.id,variants.title,variants.calculated_price" \
+            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);p=d.get("products",[]);print("found:",len(p));[print(x["id"],x["handle"],[v["id"] for v in x.get("variants",[])]) for x in p]'
 
-          echo ">> Actualizando precio MLV Ninos con region_id..."
-          RES=$(curl -s -X POST "$BASE/admin/products/$MLV_ID/variants/$MLV_VAR_ID" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"prices\":[{\"amount\":1950000,\"currency_code\":\"cop\"},{\"amount\":1950000,\"currency_code\":\"cop\",\"rules\":{\"region_id\":\"$REGION_ID\"}}]}")
-          echo "MLV: $(echo $RES | head -c 200)"
-
-          echo "=== DONE ==="
+          echo "=== TODOS LOS PRODUCTOS STORE ==="
+          curl -s "$BASE/store/products?region_id=$REGION_ID&fields=id,handle,title&limit=20" \
+            -H "x-publishable-api-key: $PK" | python3 -c 'import sys,json;d=json.load(sys.stdin);[print(p["id"],"|",p["handle"],"|",p["title"]) for p in d.get("products",[])]'
