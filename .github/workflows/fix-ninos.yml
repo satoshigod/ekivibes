@@ -7,11 +7,12 @@ jobs:
   fix-ninos:
     runs-on: ubuntu-latest
     steps:
-      - name: Restore missing variants
+      - name: Restore missing variants v3
         env:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
         run: |
+          echo "VERSION-MARKER: restore-v3"
           BASE="https://ekivibes-production.up.railway.app"
           LOCATION_ID="sloc_01KZPAFBNMW4WBK5VRZQA5G1C2"
           REGION_ID="reg_01KZPA5VQ4345MB8FP453A5EED"
@@ -24,31 +25,34 @@ jobs:
 
           create_variant() {
             PROD_ID=$1 TALLA=$2 SKU=$3 PRICE=$4
-            echo ">> Creando $TALLA..."
+            echo ">> Creando $TALLA (sku=$SKU)..."
             RESP=$(curl -s -X POST "$BASE/admin/products/$PROD_ID/variants" \
               -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
               -d "{\"title\":\"$TALLA\",\"sku\":\"$SKU\",\"manage_inventory\":true,\"options\":{\"Talla\":\"$TALLA\"},\"prices\":[{\"amount\":$PRICE,\"currency_code\":\"cop\",\"region_id\":\"$REGION_ID\"}]}")
-            # Medusa v2 devuelve el producto completo - buscar la variante por SKU
             VAR_ID=$(echo "$RESP" | python3 -c "import sys,json;d=json.load(sys.stdin);vs=[v['id'] for v in d.get('product',{}).get('variants',[]) if v.get('sku')=='$SKU'];print(vs[0] if vs else '')")
-            echo "  var_id: $VAR_ID"
+            echo "  var_id: [$VAR_ID]"
+            if [ -z "$VAR_ID" ]; then
+              echo "  RAW RESP: $(echo $RESP | head -c 400)"
+            fi
 
             if [ -n "$VAR_ID" ]; then
               INV=$(curl -s -X POST "$BASE/admin/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"sku\":\"$SKU-inv\",\"requires_shipping\":true}")
               INV_ID=$(echo "$INV" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("inventory_item",{}).get("id",""))')
               curl -s -X POST "$BASE/admin/products/$PROD_ID/variants/$VAR_ID/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"inventory_item_id\":\"$INV_ID\",\"required_quantity\":1}" > /dev/null
               curl -s -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}" > /dev/null
-              echo "  stock 100 OK"
-            else
-              echo "  ERROR: no se encontro variante con SKU $SKU"
+              echo "  stock 100 OK (inv=$INV_ID)"
             fi
           }
 
           echo "=== VH Adulto ==="
-          create_variant "$VH_ID" "S" "VH-ADU-S2" 2850000
-          create_variant "$VH_ID" "L" "VH-ADU-L2" 2850000
+          create_variant "$VH_ID" "S" "VH-ADU-S3" 2850000
+          create_variant "$VH_ID" "L" "VH-ADU-L3" 2850000
 
           echo "=== MLV Adulto ==="
-          create_variant "$MLV_ID" "M" "MLV-ADU-M2" 2850000
-          create_variant "$MLV_ID" "L" "MLV-ADU-L2" 2850000
+          create_variant "$MLV_ID" "M" "MLV-ADU-M3" 2850000
+          create_variant "$MLV_ID" "L" "MLV-ADU-L3" 2850000
 
+          echo "=== VERIFICACION FINAL ==="
+          curl -s "$BASE/admin/products/$VH_ID" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("VH variantes:",[v["title"] for v in d.get("variants",[])])'
+          curl -s "$BASE/admin/products/$MLV_ID" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("MLV variantes:",[v["title"] for v in d.get("variants",[])])'
           echo "=== DONE ==="
