@@ -35,12 +35,6 @@ jobs:
           PROD_IDS=$(echo "$PRODS" | python3 -c 'import sys,json;[print(p["id"]) for p in json.load(sys.stdin).get("products",[])]')
           for PID in $PROD_IDS; do
             P=$(curl -s "$BASE/admin/products/$PID" -H "Authorization: Bearer $TOKEN")
-            echo "$P" | python3 -c '
-import sys,json
-d=json.load(sys.stdin).get("product",{})
-print("PRODUCTO:",d.get("title"))
-for v in d.get("variants",[]):
-    print(" ",v["title"],"precio_cop:",[p["amount"] for p in v.get("prices",[]) if p.get("currency_code")=="cop"])
-'
+            echo "$P" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});print("PRODUCTO:",d.get("title"));[print(" ",v["title"],"cop:",[p["amount"] for p in v.get("prices",[]) if p.get("currency_code")=="cop"]) for v in d.get("variants",[])]'
           done
           echo "=== DONE ==="
