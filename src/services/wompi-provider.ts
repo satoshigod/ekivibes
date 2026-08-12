@@ -104,6 +104,20 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
     return { data: input.data || {} }
   }
 
+  /**
+   * La referencia enviada a Wompi tiene el formato: `<cartId>_<unico>`
+   * y el cartId de Medusa ya contiene guiones bajos (ej. cart_01KZ...).
+   * Por eso hay que cortar en el ULTIMO "_", no en el primero.
+   */
+  private extractCartId(reference?: string): string | undefined {
+    if (!reference) return undefined
+    // Formato esperado: cart_<id>_<sufijoUnico>
+    const match = reference.match(/^(cart_[A-Za-z0-9]+)_/)
+    if (match) return match[1]
+    // Si ya viene sin sufijo, devolver tal cual
+    return reference
+  }
+
   async getWebhookActionAndData(data: {
     data: Record<string, unknown>
     rawData: string | Buffer
@@ -115,11 +129,15 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
 
       if (!transaction) return { action: "not_supported" }
 
+      const cartId = this.extractCartId(transaction.reference)
+
       if (transaction.status === "APPROVED") {
         return {
           action: "authorized",
           data: {
-            session_id: transaction.reference?.split("_")[0],
+            session_id: cartId,
+            cart_id: cartId,
+            reference: transaction.reference,
             amount: transaction.amount_in_cents,
             transaction_id: transaction.id,
           } as any,
@@ -130,7 +148,9 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
         return {
           action: "failed",
           data: {
-            session_id: transaction.reference?.split("_")[0],
+            session_id: cartId,
+            cart_id: cartId,
+            reference: transaction.reference,
           } as any,
         }
       }
