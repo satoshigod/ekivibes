@@ -7,20 +7,9 @@ jobs:
   fix-ninos:
     runs-on: ubuntu-latest
     steps:
-      - name: Check inventory via expanded fields
+      - uses: actions/checkout@v4
+      - name: Fix inventory all products
         env:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
-        run: |
-          echo "VERSION-MARKER: expand-v11"
-          BASE="https://ekivibes-production.up.railway.app"
-          VH_ID="prod_01KZPGA9173EFNVPTRM4ZFKHS2"
-          VAR_ID="variant_01KZSWBDPSD7AHGP986W37BCCR"
-
-          LOGIN=$(curl -s -X POST "$BASE/auth/user/emailpass" -H "Content-Type: application/json" --data-raw "{\"email\":\"${MEDUSA_EMAIL}\",\"password\":\"${MEDUSA_PASSWORD}\"}")
-          TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
-          echo "Token OK"
-
-          echo "=== Producto VH con inventory expandido ==="
-          RESP=$(curl -s "$BASE/admin/products/$VH_ID?fields=id,title,*variants,*variants.inventory_items,*variants.inventory_items.inventory,*variants.inventory_items.inventory.location_levels" -H "Authorization: Bearer $TOKEN")
-          echo "$RESP" | python3 -c 'import sys,json;print(str(json.load(sys.stdin))[:3000])'
+        run: python3 scripts/fix_inventory.py
