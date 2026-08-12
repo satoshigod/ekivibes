@@ -100,10 +100,15 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
       }
     }
 
-    // 3) Ultimo recurso: buscar la transaccion en Wompi por la referencia
-    //    del carrito. El data de la sesion no siempre conserva lo que envia
-    //    el storefront, asi que preguntamos directamente por el carrito.
-    const cartId = (input.context as any)?.cart_id || data.cart_id
+    // 3) Buscar la transaccion en Wompi por la referencia.
+    //    Medusa NO pasa el cart_id al provider (el context solo trae
+    //    idempotency_key), pero el session_id si esta siempre disponible
+    //    y el storefront lo usa como referencia al crear la transaccion.
+    const sessionId =
+      data.session_id ||
+      (input.context as any)?.idempotency_key ||
+      (input.data as any)?.session_id
+    const cartId = sessionId
     if (cartId && this.options_.privateKey) {
       try {
         const url = `${this.wompiApiBase()}/v1/transactions?reference:like=${cartId}`
