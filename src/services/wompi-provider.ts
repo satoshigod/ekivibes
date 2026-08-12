@@ -43,6 +43,9 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
   ): Promise<InitiatePaymentOutput> {
     // amount de Medusa ya viene en centavos (unidad menor de la moneda)
     // Se pasa directo al widget de Wompi sin multiplicar
+    console.log("[WOMPI initiatePayment] input.data recibido:",
+      JSON.stringify(input.data || {}))
+
     return {
       id: `wompi-${Date.now()}`,
       data: {
@@ -67,6 +70,7 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
     input: AuthorizePaymentInput
   ): Promise<AuthorizePaymentOutput> {
     const data = (input.data || {}) as Record<string, any>
+    console.log("[WOMPI authorizePayment] data:", JSON.stringify(data))
 
     // 1) Estado ya confirmado (viene del widget o del webhook)
     if (data.wompi_status === "APPROVED") {
@@ -81,6 +85,7 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
         const res = await fetch(`${this.wompiApiBase()}/v1/transactions/${txId}`)
         const json: any = await res.json()
         const status = json?.data?.status
+        console.log("[WOMPI authorizePayment] consulta remota tx", txId, "->", status)
         if (status === "APPROVED") {
           return {
             status: "authorized" as any,
@@ -95,6 +100,7 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
       }
     }
 
+    console.log("[WOMPI authorizePayment] quedo PENDING (sin wompi_status ni transaction_id validos)")
     return { status: "pending" as any, data }
   }
 
