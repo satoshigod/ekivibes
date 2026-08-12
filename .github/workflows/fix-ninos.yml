@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Recreate MLV M and L variants
+      - name: Fix inventory all products
         env:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
-        run: python3 scripts/recreate_mlv_variants.py
+        run: python3 scripts/fix_inventory.py

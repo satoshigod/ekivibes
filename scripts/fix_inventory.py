@@ -92,6 +92,9 @@ def main():
             # desenlace no es fiable, asi que aseguramos stock en todos.
             for link in links:
                 iid = link.get("inventory_item_id")
+                if not iid:
+                    print("      ! link huerfano (sin inventory_item_id), omitido")
+                    continue
                 inv = link.get("inventory") or {}
                 levels = inv.get("location_levels") or []
                 has_level = any(l.get("location_id") == LOCATION_ID for l in levels)
@@ -120,7 +123,7 @@ def main():
     print("\n=== VERIFICACION ===")
     for p in prods:
         fields = (
-            "?fields=id,title,*variants,*variants.inventory_items,"
+            "?fields=id,title,*variants,*variants.prices,*variants.inventory_items,"
             "*variants.inventory_items.inventory,"
             "*variants.inventory_items.inventory.location_levels"
         )
@@ -135,8 +138,11 @@ def main():
                 match = [l for l in levels if l.get("location_id") == LOCATION_ID]
                 estados.append(match[0].get("stocked_quantity") if match else "SIN-STOCK")
             ok = bool(estados) and all(e != "SIN-STOCK" for e in estados)
-            print("   %s items=%d stock=%s %s"
-                  % (v.get("title"), len(links), estados, "OK" if ok else "REVISAR"))
+            precio = [pr["amount"] for pr in (v.get("prices") or [])
+                      if pr.get("currency_code") == "cop"]
+            print("   %s items=%d stock=%s precio=%s %s"
+                  % (v.get("title"), len(links), estados, precio,
+                     "OK" if ok else "REVISAR"))
 
 
 if __name__ == "__main__":
