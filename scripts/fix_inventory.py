@@ -87,50 +87,34 @@ def main():
                 total_fixed += 1
                 continue
 
-            # Elegir el item "bueno": preferir uno que ya tenga stock en la bodega
-            keep = None
-            for link in links:
-                inv = link.get("inventory") or {}
-                levels = inv.get("location_levels") or []
-                if any(l.get("location_id") == LOCATION_ID for l in levels):
-                    keep = link
-                    break
-            if keep is None:
-                keep = links[0]
-
-            keep_iid = keep.get("inventory_item_id")
-
-            # Desenlazar todos los demas (son los que rompen el carrito)
+            # Estrategia: dar stock a TODOS los items enlazados.
+            # Medusa exige que cada item enlazado tenga stock; el DELETE de
+            # desenlace no es fiable, asi que aseguramos stock en todos.
             for link in links:
                 iid = link.get("inventory_item_id")
-                if iid == keep_iid:
-                    continue
-                req("DELETE",
-                    "/admin/products/%s/variants/%s/inventory-items/%s" % (pid, vid, iid),
-                    token)
-                total_unlinked += 1
+                inv = link.get("inventory") or {}
+                levels = inv.get("location_levels") or []
+                has_level = any(l.get("location_id") == LOCATION_ID for l in levels)
+                if has_level:
+                    r = req("POST",
+                            "/admin/inventory-items/%s/location-levels/%s" % (iid, LOCATION_ID),
+                            token, {"stocked_quantity": QTY})
+                else:
+                    r = req("POST", "/admin/inventory-items/%s/location-levels" % iid, token,
+                            {"location_id": LOCATION_ID, "stocked_quantity": QTY})
+                if "__error__" in r:
+                    print("      ! %s -> %s" % (iid, r.get("__error__")))
+                else:
+                    total_unlinked += 1
 
-            # Asegurar stock en el que queda
-            levels = (keep.get("inventory") or {}).get("location_levels") or []
-            has_level = any(l.get("location_id") == LOCATION_ID for l in levels)
-            if has_level:
-                req("POST",
-                    "/admin/inventory-items/%s/location-levels/%s" % (keep_iid, LOCATION_ID),
-                    token, {"stocked_quantity": QTY})
-            else:
-                req("POST", "/admin/inventory-items/%s/location-levels" % keep_iid, token,
-                    {"location_id": LOCATION_ID, "stocked_quantity": QTY})
-
-            extras = len(links) - 1
-            print("   %s: keep=%s stock=%d (desenlazados: %d)"
-                  % (title, keep_iid, QTY, extras))
+            print("   %s: %d items, todos con stock %d" % (title, len(links), QTY))
             total_fixed += 1
 
         print("")
 
     print("=== RESUMEN ===")
     print("Variantes procesadas: %d" % total_fixed)
-    print("Items duplicados desenlazados: %d" % total_unlinked)
+    print("Niveles de stock aplicados: %d" % total_unlinked)
 
     # Verificacion final
     print("\n=== VERIFICACION ===")
@@ -150,7 +134,7 @@ def main():
                 levels = inv.get("location_levels") or []
                 match = [l for l in levels if l.get("location_id") == LOCATION_ID]
                 estados.append(match[0].get("stocked_quantity") if match else "SIN-STOCK")
-            ok = len(links) == 1 and estados and estados[0] != "SIN-STOCK"
+            ok = bool(estados) and all(e != "SIN-STOCK" for e in estados)
             print("   %s items=%d stock=%s %s"
                   % (v.get("title"), len(links), estados, "OK" if ok else "REVISAR"))
 
