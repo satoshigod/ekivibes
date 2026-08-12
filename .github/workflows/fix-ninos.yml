@@ -7,27 +7,20 @@ jobs:
   fix-ninos:
     runs-on: ubuntu-latest
     steps:
-      - name: Diagnose multi-linked inventory
+      - name: Check inventory via expanded fields
         env:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
         run: |
-          echo "VERSION-MARKER: diag-multi-v10"
+          echo "VERSION-MARKER: expand-v11"
           BASE="https://ekivibes-production.up.railway.app"
+          VH_ID="prod_01KZPGA9173EFNVPTRM4ZFKHS2"
           VAR_ID="variant_01KZSWBDPSD7AHGP986W37BCCR"
 
           LOGIN=$(curl -s -X POST "$BASE/auth/user/emailpass" -H "Content-Type: application/json" --data-raw "{\"email\":\"${MEDUSA_EMAIL}\",\"password\":\"${MEDUSA_PASSWORD}\"}")
           TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
           echo "Token OK"
 
-          echo "=== Inventory items enlazados a VH S ==="
-          LINKED=$(curl -s "$BASE/admin/inventory-items?variant_id=$VAR_ID" -H "Authorization: Bearer $TOKEN")
-          echo "$LINKED" | python3 -c 'import sys,json;d=json.load(sys.stdin);items=d.get("inventory_items",[]);print("count:",len(items));[print(" -",i["id"],"sku:",i.get("sku")) for i in items]'
-
-          echo "=== Stock de cada uno ==="
-          IDS=$(echo "$LINKED" | python3 -c 'import sys,json;[print(i["id"]) for i in json.load(sys.stdin).get("inventory_items",[])]')
-          for IID in $IDS; do
-            LEVELS=$(curl -s "$BASE/admin/inventory-items/$IID/location-levels" -H "Authorization: Bearer $TOKEN")
-            echo "  $IID:"
-            echo "$LEVELS" | python3 -c 'import sys,json;[print("    loc:",l["location_id"],"stock:",l["stocked_quantity"],"reserved:",l.get("reserved_quantity",0)) for l in json.load(sys.stdin).get("inventory_levels",[])]'
-          done
+          echo "=== Producto VH con inventory expandido ==="
+          RESP=$(curl -s "$BASE/admin/products/$VH_ID?fields=id,title,*variants,*variants.inventory_items,*variants.inventory_items.inventory,*variants.inventory_items.inventory.location_levels" -H "Authorization: Bearer $TOKEN")
+          echo "$RESP" | python3 -c 'import sys,json;print(str(json.load(sys.stdin))[:3000])'
