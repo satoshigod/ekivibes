@@ -100,7 +100,44 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
       }
     }
 
-    console.log("[WOMPI authorizePayment] quedo PENDING (sin wompi_status ni transaction_id validos)")
+    // 3) Ultimo recurso: buscar la transaccion en Wompi por la referencia
+    //    del carrito. El data de la sesion no siempre conserva lo que envia
+    //    el storefront, asi que preguntamos directamente por el carrito.
+    const cartId = (input.context as any)?.cart_id || data.cart_id
+    if (cartId && this.options_.privateKey) {
+      try {
+        const url = `${this.wompiApiBase()}/v1/transactions?reference:like=${cartId}`
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${this.options_.privateKey}` },
+        })
+        const json: any = await res.json()
+        const txs: any[] = json?.data || []
+        const aprobada = txs.find((t) => t?.status === "APPROVED")
+        console.log(
+          "[WOMPI authorizePayment] busqueda por carrito",
+          cartId,
+          "-> encontradas:",
+          txs.length,
+          "aprobada:",
+          !!aprobada
+        )
+        if (aprobada) {
+          return {
+            status: "authorized" as any,
+            data: {
+              ...data,
+              wompi_status: "APPROVED",
+              transaction_id: aprobada.id,
+              reference: aprobada.reference,
+            },
+          }
+        }
+      } catch (e: any) {
+        console.log("[WOMPI authorizePayment] error buscando por carrito:", e?.message)
+      }
+    }
+
+    console.log("[WOMPI authorizePayment] quedo PENDING. context:", JSON.stringify(input.context || {}))
     return { status: "pending" as any, data }
   }
 

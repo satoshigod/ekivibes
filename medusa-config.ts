@@ -39,10 +39,11 @@ module.exports = defineConfig({
             resolve: "./src/services/wompi-provider",
             id: "wompi",
             options: {
-              publicKey: process.env.WOMPI_PUBLIC_KEY,
-              privateKey: process.env.WOMPI_PRIVATE_KEY,
-              integritySecret: process.env.WOMPI_INTEGRITY_SECRET,
-              env: process.env.WOMPI_ENV || "test",
+              // .trim(): las llaves copiadas a Railway traen saltos de linea
+              publicKey: (process.env.WOMPI_PUBLIC_KEY || "").trim(),
+              privateKey: (process.env.WOMPI_PRIVATE_KEY || "").trim(),
+              integritySecret: (process.env.WOMPI_INTEGRITY_SECRET || "").trim(),
+              env: (process.env.WOMPI_ENV || "test").trim(),
             },
           },
         ],
