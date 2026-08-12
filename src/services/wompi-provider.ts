@@ -224,6 +224,14 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
       if (!transaction) return { action: "not_supported" }
 
       const cartId = this.extractCartId(transaction.reference)
+      console.log(
+        "[WOMPI webhook] tx:",
+        transaction.id,
+        "status:",
+        transaction.status,
+        "ref:",
+        transaction.reference
+      )
 
       if (transaction.status === "APPROVED") {
         return {
