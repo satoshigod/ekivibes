@@ -7,7 +7,7 @@ jobs:
   fix-ninos:
     runs-on: ubuntu-latest
     steps:
-      - name: Restore adult variants and fix ninos names
+      - name: Diagnose and fix
         env:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
@@ -24,59 +24,11 @@ jobs:
           TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
           echo "Token OK"
 
-          create_variant() {
-            PROD_ID=$1 OPT_ID=$2 TITLE=$3 SKU=$4 PRICE=$5
-            VAR=$(curl -s -X POST "$BASE/admin/products/$PROD_ID/variants" \
-              -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-              -d "{\"title\":\"$TITLE\",\"sku\":\"$SKU\",\"manage_inventory\":true,\"options\":{\"$OPT_ID\":\"$TITLE\"},\"prices\":[{\"amount\":$PRICE,\"currency_code\":\"cop\",\"region_id\":\"$REGION_ID\"}]}")
-            VAR_ID=$(echo "$VAR" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("variant",{}).get("id",""))')
-            echo "  variante $TITLE: $VAR_ID"
-            if [ -n "$VAR_ID" ]; then
-              INV=$(curl -s -X POST "$BASE/admin/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"sku\":\"$SKU-inv\",\"requires_shipping\":true}")
-              INV_ID=$(echo "$INV" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("inventory_item",{}).get("id",""))')
-              curl -s -X POST "$BASE/admin/products/$PROD_ID/variants/$VAR_ID/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"inventory_item_id\":\"$INV_ID\",\"required_quantity\":1}" > /dev/null
-              curl -s -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}" > /dev/null
-              echo "  stock 100 OK"
-            fi
-          }
+          echo "=== VH ADULTO OPTIONS ==="
+          curl -s "$BASE/admin/products/$VH_ID" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});[print("opt:",o["id"],o["title"],"values:",[v["value"] for v in o.get("values",[])]) for o in d.get("options",[])]'
 
-          # Obtener option IDs de VH Adulto y MLV Adulto
-          VH_PROD=$(curl -s "$BASE/admin/products/$VH_ID" -H "Authorization: Bearer $TOKEN")
-          VH_OPT=$(echo "$VH_PROD" | python3 -c 'import sys,json;opts=json.load(sys.stdin).get("product",{}).get("options",[]);print(opts[0]["id"] if opts else "")')
-          VH_VARS=$(echo "$VH_PROD" | python3 -c 'import sys,json;[print(v["title"]) for v in json.load(sys.stdin).get("product",{}).get("variants",[])]')
-          echo "=== VH Adulto (opt: $VH_OPT) variantes actuales: ==="
-          echo "$VH_VARS"
+          echo "=== MLV ADULTO OPTIONS ==="
+          curl -s "$BASE/admin/products/$MLV_ID" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});[print("opt:",o["id"],o["title"],"values:",[v["value"] for v in o.get("values",[])]) for o in d.get("options",[])]'
 
-          MLV_PROD=$(curl -s "$BASE/admin/products/$MLV_ID" -H "Authorization: Bearer $TOKEN")
-          MLV_OPT=$(echo "$MLV_PROD" | python3 -c 'import sys,json;opts=json.load(sys.stdin).get("product",{}).get("options",[]);print(opts[0]["id"] if opts else "")')
-          MLV_VARS=$(echo "$MLV_PROD" | python3 -c 'import sys,json;[print(v["title"]) for v in json.load(sys.stdin).get("product",{}).get("variants",[])]')
-          echo "=== MLV Adulto (opt: $MLV_OPT) variantes actuales: ==="
-          echo "$MLV_VARS"
-
-          # Crear tallas faltantes VH Adulto (S, M, L) - precio 2,850,000
-          for TALLA in S L; do
-            HAS=$(echo "$VH_VARS" | grep -c "^$TALLA$" || true)
-            if [ "$HAS" = "0" ]; then
-              create_variant "$VH_ID" "$VH_OPT" "$TALLA" "VH-ADU-$TALLA" 2850000
-            else
-              echo "  VH $TALLA ya existe"
-            fi
-          done
-
-          # Crear tallas faltantes MLV Adulto (XS, M, L) - precio 2,850,000
-          for TALLA in XS M L; do
-            HAS=$(echo "$MLV_VARS" | grep -c "^$TALLA$" || true)
-            if [ "$HAS" = "0" ]; then
-              create_variant "$MLV_ID" "$MLV_OPT" "$TALLA" "MLV-ADU-$TALLA" 2850000
-            else
-              echo "  MLV $TALLA ya existe"
-            fi
-          done
-
-          # Arreglar nombre de variante MLV Ninos - cambiar titulo a 2XS
-          echo "=== Arreglando nombre variante MLV Ninos ==="
-          curl -s -X POST "$BASE/admin/products/$MLV_NINOS_ID/variants/$MLV_NINOS_VAR" \
-            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -d '{"title":"2XS"}' | python3 -c 'import sys,json;d=json.load(sys.stdin);print("titulo:",d.get("variant",{}).get("title","err"))'
-
-          echo "=== DONE ==="
+          echo "=== MLV NINOS VAR ==="
+          curl -s "$BASE/admin/products/$MLV_NINOS_ID" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});[print("var:",v["id"],v["title"]) for v in d.get("variants",[])]'
