@@ -25,12 +25,12 @@ jobs:
           create_variant() {
             PROD_ID=$1 TALLA=$2 SKU=$3 PRICE=$4
             echo ">> Creando $TALLA..."
-            VAR=$(curl -s -X POST "$BASE/admin/products/$PROD_ID/variants" \
+            RESP=$(curl -s -X POST "$BASE/admin/products/$PROD_ID/variants" \
               -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
               -d "{\"title\":\"$TALLA\",\"sku\":\"$SKU\",\"manage_inventory\":true,\"options\":{\"Talla\":\"$TALLA\"},\"prices\":[{\"amount\":$PRICE,\"currency_code\":\"cop\",\"region_id\":\"$REGION_ID\"}]}")
-            VAR_ID=$(echo "$VAR" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("variant",{}).get("id",""))')
+            # Medusa v2 devuelve el producto completo - buscar la variante por SKU
+            VAR_ID=$(echo "$RESP" | python3 -c "import sys,json;d=json.load(sys.stdin);vs=[v['id'] for v in d.get('product',{}).get('variants',[]) if v.get('sku')=='$SKU'];print(vs[0] if vs else '')")
             echo "  var_id: $VAR_ID"
-            echo "  resp: $(echo $VAR | head -c 150)"
 
             if [ -n "$VAR_ID" ]; then
               INV=$(curl -s -X POST "$BASE/admin/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"sku\":\"$SKU-inv\",\"requires_shipping\":true}")
@@ -38,17 +38,17 @@ jobs:
               curl -s -X POST "$BASE/admin/products/$PROD_ID/variants/$VAR_ID/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"inventory_item_id\":\"$INV_ID\",\"required_quantity\":1}" > /dev/null
               curl -s -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}" > /dev/null
               echo "  stock 100 OK"
+            else
+              echo "  ERROR: no se encontro variante con SKU $SKU"
             fi
           }
 
-          # VH Adulto: faltan S y L (tiene M)
           echo "=== VH Adulto ==="
-          create_variant "$VH_ID" "S" "VH-ADU-S" 2850000
-          create_variant "$VH_ID" "L" "VH-ADU-L" 2850000
+          create_variant "$VH_ID" "S" "VH-ADU-S2" 2850000
+          create_variant "$VH_ID" "L" "VH-ADU-L2" 2850000
 
-          # MLV Adulto: faltan M y L (tiene S y XS del anterior)
           echo "=== MLV Adulto ==="
-          create_variant "$MLV_ID" "M" "MLV-ADU-M" 2850000
-          create_variant "$MLV_ID" "L" "MLV-ADU-L" 2850000
+          create_variant "$MLV_ID" "M" "MLV-ADU-M2" 2850000
+          create_variant "$MLV_ID" "L" "MLV-ADU-L2" 2850000
 
           echo "=== DONE ==="
