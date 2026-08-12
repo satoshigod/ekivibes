@@ -111,12 +111,24 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
     const cartId = sessionId
     if (cartId && this.options_.privateKey) {
       try {
-        const url = `${this.wompiApiBase()}/v1/transactions?reference:like=${cartId}`
+        // Wompi no filtra de forma fiable por reference, asi que traemos
+        // las transacciones recientes y comparamos aqui.
+        const url = `${this.wompiApiBase()}/v1/transactions?page[size]=50`
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${this.options_.privateKey}` },
         })
         const json: any = await res.json()
-        const txs: any[] = json?.data || []
+        const todas: any[] = json?.data || []
+        // La referencia empieza con el session_id: payses_xxx_<sufijo>
+        const txs = todas.filter((t) =>
+          String(t?.reference || "").startsWith(String(cartId))
+        )
+        console.log(
+          "[WOMPI authorizePayment] total recientes:",
+          todas.length,
+          "| refs:",
+          JSON.stringify(todas.slice(0, 5).map((t) => t?.reference))
+        )
         const aprobada = txs.find((t) => t?.status === "APPROVED")
         console.log(
           "[WOMPI authorizePayment] busqueda por carrito",
