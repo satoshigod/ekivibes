@@ -19,53 +19,13 @@ jobs:
           TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
           echo "Token OK"
 
-          fix_variant() {
-            VAR_ID=$1 PROD_ID=$2 LABEL=$3
-            echo ">> $LABEL ($VAR_ID)"
-
-            # Buscar inventory item enlazado
-            LINKED=$(curl -s "$BASE/admin/inventory-items?variant_id=$VAR_ID" -H "Authorization: Bearer $TOKEN")
-            INV_ID=$(echo "$LINKED" | python3 -c 'import sys,json;items=json.load(sys.stdin).get("inventory_items",[]);print(items[0]["id"] if items else "")')
-
-            if [ -z "$INV_ID" ]; then
-              echo "  Creando inventory item..."
-              INV=$(curl -s -X POST "$BASE/admin/inventory-items" \
-                -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-                -d "{\"sku\":\"fix-$(echo $VAR_ID | cut -c9-16)\",\"requires_shipping\":true}")
-              INV_ID=$(echo "$INV" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("inventory_item",{}).get("id",""))')
-              echo "  inv_id: $INV_ID"
-
-              if [ -n "$INV_ID" ]; then
-                LINK=$(curl -s -X POST "$BASE/admin/products/$PROD_ID/variants/$VAR_ID/inventory-items" \
-                  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-                  -d "{\"inventory_item_id\":\"$INV_ID\",\"required_quantity\":1}")
-                echo "  link: $(echo $LINK | head -c 100)"
-              fi
-            else
-              echo "  inv_id existente: $INV_ID"
-            fi
-
-            if [ -n "$INV_ID" ]; then
-              # Verificar si ya tiene level en bodega
-              LEVELS=$(curl -s "$BASE/admin/inventory-items/$INV_ID/location-levels" -H "Authorization: Bearer $TOKEN")
-              HAS=$(echo "$LEVELS" | python3 -c "import sys,json;ls=json.load(sys.stdin).get('inventory_levels',[]);print('yes' if any(l['location_id']=='$LOCATION_ID' for l in ls) else 'no')")
-              if [ "$HAS" = "no" ]; then
-                curl -s -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" \
-                  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-                  -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}" > /dev/null
-                echo "  + stock 100 OK"
-              else
-                echo "  ~ ya tiene stock en bodega"
-              fi
-            fi
-          }
-
-          # Obtener product IDs para cada variante
           ALL_PRODS=$(curl -s "$BASE/admin/products?limit=50" -H "Authorization: Bearer $TOKEN")
 
-          get_prod_id() {
-            VAR_ID=$1
-            echo "$ALL_PRODS" | python3 -c "
+          # Para cada variante rota: buscar su producto, crear inventory item, enlazar, poner stock
+          for VAR_ID in variant_01KZSGE1C0F33PNVZXDBXBR49G variant_01KZPGKJKHXTWJN4AAFNMNQFSH variant_01KZPHH7HR3VQADVBBX402P8ZE variant_01KZPHDZ77F93TEXE15489HB01 variant_01KZPHRBKSHQYJWWFM6FZJJVZQ variant_01KZSGCMBMY2S95CYYB8S5RZ4W; do
+            echo ">> $VAR_ID"
+
+            PROD_ID=$(echo "$ALL_PRODS" | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
 for p in d.get('products',[]):
@@ -73,15 +33,33 @@ for p in d.get('products',[]):
         if v['id']=='$VAR_ID':
             print(p['id'])
             break
-"
-          }
+")
+            echo "  prod: $PROD_ID"
 
-          # Variantes que fallan segun los logs
-          BROKEN_VARIANTS="variant_01KZSGE1C0F33PNVZXDBXBR49G variant_01KZPGKJKHXTWJN4AAFNMNQFSH variant_01KZPHH7HR3VQADVBBX402P8ZE variant_01KZPHDZ77F93TEXE15489HB01 variant_01KZPHRBKSHQYJWWFM6FZJJVZQ variant_01KZSGCMBMY2S95CYYB8S5RZ4W"
+            LINKED=$(curl -s "$BASE/admin/inventory-items?variant_id=$VAR_ID" -H "Authorization: Bearer $TOKEN")
+            INV_ID=$(echo "$LINKED" | python3 -c 'import sys,json;items=json.load(sys.stdin).get("inventory_items",[]);print(items[0]["id"] if items else "")')
 
-          for VAR_ID in $BROKEN_VARIANTS; do
-            PROD_ID=$(get_prod_id $VAR_ID)
-            fix_variant "$VAR_ID" "$PROD_ID" "$VAR_ID"
+            if [ -z "$INV_ID" ]; then
+              INV=$(curl -s -X POST "$BASE/admin/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"sku\":\"fix-$(echo $VAR_ID | cut -c9-16)\",\"requires_shipping\":true}")
+              INV_ID=$(echo "$INV" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("inventory_item",{}).get("id",""))')
+              echo "  inv creado: $INV_ID"
+              if [ -n "$INV_ID" ] && [ -n "$PROD_ID" ]; then
+                LINK=$(curl -s -X POST "$BASE/admin/products/$PROD_ID/variants/$VAR_ID/inventory-items" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"inventory_item_id\":\"$INV_ID\",\"required_quantity\":1}")
+                echo "  link: $(echo $LINK | head -c 100)"
+              fi
+            else
+              echo "  inv existente: $INV_ID"
+            fi
+
+            if [ -n "$INV_ID" ]; then
+              LEVELS=$(curl -s "$BASE/admin/inventory-items/$INV_ID/location-levels" -H "Authorization: Bearer $TOKEN")
+              HAS=$(echo "$LEVELS" | python3 -c "import sys,json;ls=json.load(sys.stdin).get('inventory_levels',[]);print('yes' if any(l['location_id']=='$LOCATION_ID' for l in ls) else 'no')")
+              if [ "$HAS" = "no" ]; then
+                curl -s -X POST "$BASE/admin/inventory-items/$INV_ID/location-levels" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"location_id\":\"$LOCATION_ID\",\"stocked_quantity\":100}" > /dev/null
+                echo "  + stock 100 OK"
+              else
+                echo "  ~ ya tiene stock"
+              fi
+            fi
           done
-
           echo "=== DONE ==="
