@@ -46,6 +46,8 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
     return {
       id: `wompi-${Date.now()}`,
       data: {
+        // Preservar lo que venga del storefront (wompi_status, transaction_id...)
+        ...((input.data as Record<string, unknown>) || {}),
         amount: input.amount,           // ya en centavos — NO multiplicar x100 en el frontend
         currency_code: input.currency_code,
         public_key: this.options_.publicKey || process.env.WOMPI_PUBLIC_KEY,
@@ -54,14 +56,46 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
     }
   }
 
+  private wompiApiBase(): string {
+    const env = (this.options_.env || process.env.WOMPI_ENV || "test").toLowerCase()
+    return env === "prod" || env === "production"
+      ? "https://production.wompi.co"
+      : "https://sandbox.wompi.co"
+  }
+
   async authorizePayment(
     input: AuthorizePaymentInput
   ): Promise<AuthorizePaymentOutput> {
-    // Wompi confirma via webhook; si llega aquí el pago ya fue aprobado
-    const status = (input.data?.wompi_status as string) === "APPROVED"
-      ? "authorized"
-      : "pending"
-    return { status: status as any, data: input.data || {} }
+    const data = (input.data || {}) as Record<string, any>
+
+    // 1) Estado ya confirmado (viene del widget o del webhook)
+    if (data.wompi_status === "APPROVED") {
+      return { status: "authorized" as any, data }
+    }
+
+    // 2) Verificar directamente con Wompi si tenemos el id de transaccion.
+    //    Cubre el flujo de redirect (PSE, Nequi) donde el widget no responde.
+    const txId = data.transaction_id as string | undefined
+    if (txId) {
+      try {
+        const res = await fetch(`${this.wompiApiBase()}/v1/transactions/${txId}`)
+        const json: any = await res.json()
+        const status = json?.data?.status
+        if (status === "APPROVED") {
+          return {
+            status: "authorized" as any,
+            data: { ...data, wompi_status: status },
+          }
+        }
+        if (status === "DECLINED" || status === "ERROR") {
+          return { status: "error" as any, data: { ...data, wompi_status: status } }
+        }
+      } catch (e) {
+        // si falla la consulta, dejar pendiente
+      }
+    }
+
+    return { status: "pending" as any, data }
   }
 
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
