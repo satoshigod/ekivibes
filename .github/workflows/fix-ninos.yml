@@ -12,7 +12,7 @@ jobs:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
         run: |
-          echo "VERSION-MARKER: verify-v4"
+          echo "VERSION-MARKER: verify-v5"
           BASE="https://ekivibes-production.up.railway.app"
           LOCATION_ID="sloc_01KZPAFBNMW4WBK5VRZQA5G1C2"
           REGION_ID="reg_01KZPA5VQ4345MB8FP453A5EED"
@@ -23,26 +23,12 @@ jobs:
           TOKEN=$(echo "$LOGIN" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
           echo "Token OK"
 
-          echo "=== VH ADULTO - detalle completo ==="
-          curl -s "$BASE/admin/products/$VH_ID" -H "Authorization: Bearer $TOKEN" | python3 -c '
-import sys,json
-d=json.load(sys.stdin).get("product",{})
-for v in d.get("variants",[]):
-    prices=[(p.get("currency_code"),p.get("amount")) for p in v.get("prices",[])]
-    print(v["id"],v["title"],"sku:",v.get("sku"),"prices:",prices)
-'
+          echo "=== VH ADULTO detalle ==="
+          curl -s "$BASE/admin/products/$VH_ID" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});[print(v["id"],v["title"],"sku:",v.get("sku"),"prices:",[(p.get("currency_code"),p.get("amount")) for p in v.get("prices",[])]) for v in d.get("variants",[])]'
 
-          echo "=== MLV ADULTO - detalle completo ==="
-          curl -s "$BASE/admin/products/$MLV_ID" -H "Authorization: Bearer $TOKEN" | python3 -c '
-import sys,json
-d=json.load(sys.stdin).get("product",{})
-for v in d.get("variants",[]):
-    prices=[(p.get("currency_code"),p.get("amount")) for p in v.get("prices",[])]
-    print(v["id"],v["title"],"sku:",v.get("sku"),"prices:",prices)
-'
+          echo "=== MLV ADULTO detalle ==="
+          curl -s "$BASE/admin/products/$MLV_ID" -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;d=json.load(sys.stdin).get("product",{});[print(v["id"],v["title"],"sku:",v.get("sku"),"prices:",[(p.get("currency_code"),p.get("amount")) for p in v.get("prices",[])]) for v in d.get("variants",[])]'
 
-          echo "=== Creando MLV XS (falta) ==="
-          RESP=$(curl -s -X POST "$BASE/admin/products/$MLV_ID/variants" \
-            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -d "{\"title\":\"XS\",\"sku\":\"MLV-ADU-XS-v4\",\"manage_inventory\":true,\"options\":{\"Talla\":\"XS\"},\"prices\":[{\"amount\":2850000,\"currency_code\":\"cop\",\"region_id\":\"$REGION_ID\"}]}")
+          echo "=== Creando MLV XS ==="
+          RESP=$(curl -s -X POST "$BASE/admin/products/$MLV_ID/variants" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"title\":\"XS\",\"sku\":\"MLV-ADU-XS-v5\",\"manage_inventory\":true,\"options\":{\"Talla\":\"XS\"},\"prices\":[{\"amount\":2850000,\"currency_code\":\"cop\",\"region_id\":\"$REGION_ID\"}]}")
           echo "resp: $(echo $RESP | head -c 300)"
