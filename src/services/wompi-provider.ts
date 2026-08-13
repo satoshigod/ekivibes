@@ -1,4 +1,4 @@
-import { AbstractPaymentProvider, ModuleProvider } from "@medusajs/framework/utils"
+import { AbstractPaymentProvider, ModuleProvider, Modules } from "@medusajs/framework/utils"
 import {
   InitiatePaymentInput,
   InitiatePaymentOutput,
@@ -41,17 +41,14 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
   async initiatePayment(
     input: InitiatePaymentInput
   ): Promise<InitiatePaymentOutput> {
-    // amount de Medusa ya viene en centavos (unidad menor de la moneda)
-    // Se pasa directo al widget de Wompi sin multiplicar
     console.log("[WOMPI initiatePayment] input.data recibido:",
       JSON.stringify(input.data || {}))
 
     return {
       id: `wompi-${Date.now()}`,
       data: {
-        // Preservar lo que venga del storefront (wompi_status, transaction_id...)
         ...((input.data as Record<string, unknown>) || {}),
-        amount: input.amount,           // ya en centavos — NO multiplicar x100 en el frontend
+        amount: input.amount,
         currency_code: input.currency_code,
         public_key: this.options_.publicKey || process.env.WOMPI_PUBLIC_KEY,
         env: this.options_.env || process.env.WOMPI_ENV || "test",
@@ -72,13 +69,10 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
     const data = (input.data || {}) as Record<string, any>
     console.log("[WOMPI authorizePayment] data:", JSON.stringify(data))
 
-    // 1) Estado ya confirmado (viene del widget o del webhook)
     if (data.wompi_status === "APPROVED") {
       return { status: "authorized" as any, data }
     }
 
-    // 2) Verificar directamente con Wompi si tenemos el id de transaccion.
-    //    Cubre el flujo de redirect (PSE, Nequi) donde el widget no responde.
     const txId = data.transaction_id as string | undefined
     if (txId) {
       try {
@@ -100,10 +94,6 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
       }
     }
 
-    // 3) Buscar la transaccion en Wompi por la referencia.
-    //    Medusa NO pasa el cart_id al provider (el context solo trae
-    //    idempotency_key), pero el session_id si esta siempre disponible
-    //    y el storefront lo usa como referencia al crear la transaccion.
     const sessionId =
       data.session_id ||
       (input.context as any)?.idempotency_key ||
@@ -111,15 +101,12 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
     const cartId = sessionId
     if (cartId && this.options_.privateKey) {
       try {
-        // Wompi no filtra de forma fiable por reference, asi que traemos
-        // las transacciones recientes y comparamos aqui.
         const url = `${this.wompiApiBase()}/v1/transactions?page[size]=50`
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${this.options_.privateKey}` },
         })
         const json: any = await res.json()
         const todas: any[] = json?.data || []
-        // La referencia empieza con el session_id: payses_xxx_<sufijo>
         const txs = todas.filter((t) =>
           String(t?.reference || "").startsWith(String(cartId))
         )
@@ -163,7 +150,6 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
   }
 
   async capturePayment(input: CapturePaymentInput): Promise<CapturePaymentOutput> {
-    // Wompi captura automáticamente al aprobar
     return { data: input.data || {} }
   }
 
@@ -198,17 +184,10 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
     return { data: input.data || {} }
   }
 
-  /**
-   * La referencia enviada a Wompi tiene el formato: `<cartId>_<unico>`
-   * y el cartId de Medusa ya contiene guiones bajos (ej. cart_01KZ...).
-   * Por eso hay que cortar en el ULTIMO "_", no en el primero.
-   */
   private extractCartId(reference?: string): string | undefined {
     if (!reference) return undefined
-    // Formato esperado: cart_<id>_<sufijoUnico>
     const match = reference.match(/^(cart_[A-Za-z0-9]+)_/)
     if (match) return match[1]
-    // Si ya viene sin sufijo, devolver tal cual
     return reference
   }
 
@@ -263,6 +242,7 @@ class WompiPaymentProviderService extends AbstractPaymentProvider<WompiOptions> 
   }
 }
 
-export default ModuleProvider("wompi", {
+export default ModuleProvider(Modules.PAYMENT, {
   services: [WompiPaymentProviderService],
 })
+
