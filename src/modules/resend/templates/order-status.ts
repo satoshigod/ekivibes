@@ -1,6 +1,17 @@
-type TrackingInfo = {
-  number?: string
-  url?: string
+type OrderItem = {
+  product_title?: string
+  variant_title?: string
+  quantity?: number
+  total?: number
+}
+
+type ShippingAddress = {
+  first_name?: string
+  last_name?: string
+  address_1?: string
+  address_2?: string
+  city?: string
+  province?: string
 }
 
 type OrderStatusData = {
@@ -8,15 +19,11 @@ type OrderStatusData = {
     display_id: number
     email: string
     currency_code: string
-    total: number
-    shipping_address?: {
-      first_name?: string
-      city?: string
-      province?: string
-    }
+    items?: OrderItem[]
+    shipping_address?: ShippingAddress
   }
   stage: "fulfilled" | "shipped" | "delivered"
-  tracking?: TrackingInfo
+  tracking?: { number?: string; url?: string }
 }
 
 const BRAND_GOLD = "#A8935E"
@@ -37,20 +44,66 @@ const STAGE_COPY: Record<OrderStatusData["stage"], { title: string; body: string
   },
 }
 
+function money(amount: number | undefined | null, currency: string) {
+  const value = typeof amount === "number" && !Number.isNaN(amount) ? amount : 0
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: (currency || "COP").toUpperCase(),
+  }).format(value)
+}
+
 export function orderStatusHtml({ order, stage, tracking }: OrderStatusData): string {
   const nombre = order.shipping_address?.first_name || "cliente"
   const copy = STAGE_COPY[stage]
+  const items = order.items || []
+
+  const itemsHtml = items.length
+    ? `
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        ${items
+          .map((item) => {
+            const cantidad = typeof item.quantity === "number" ? item.quantity : 1
+            const nombreItem = item.product_title || "Producto"
+            const varianteItem = item.variant_title ? ` (${item.variant_title})` : ""
+            return `
+        <tr>
+          <td style="padding:10px 0;border-bottom:1px solid #eee;">
+            <div style="font-weight:600;color:#1a1a1a;font-size:14px;">${nombreItem}${varianteItem}</div>
+            <div style="color:#888;font-size:13px;margin-top:2px;">Cantidad: ${cantidad}</div>
+          </td>
+          <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;vertical-align:top;font-weight:600;color:#1a1a1a;font-size:14px;">
+            ${money(item.total, order.currency_code)}
+          </td>
+        </tr>`
+          })
+          .join("")}
+      </table>`
+    : ""
+
+  const direccion = order.shipping_address
+  const direccionHtml = direccion
+    ? `
+      <div style="margin-top:20px;">
+        <div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Dirección de envío</div>
+        <div style="color:#444;font-size:14px;line-height:1.5;">
+          ${direccion.first_name || ""} ${direccion.last_name || ""}<br>
+          ${direccion.address_1 || ""}${direccion.address_2 ? ", " + direccion.address_2 : ""}<br>
+          ${direccion.city || ""}${direccion.province ? ", " + direccion.province : ""}
+        </div>
+      </div>`
+    : ""
 
   const trackingHtml = tracking?.number
     ? `
-      <tr>
-        <td style="padding:20px 0 0 0;">
-          <div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Número de guía</div>
-          <div style="color:#1a1a1a;font-size:15px;font-weight:600;">
-            ${tracking.url ? `<a href="${tracking.url}" style="color:${BRAND_GOLD};text-decoration:none;">${tracking.number}</a>` : tracking.number}
-          </div>
-        </td>
-      </tr>`
+      <div style="margin-top:20px;">
+        <div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Número de guía</div>
+        <div style="color:#1a1a1a;font-size:15px;font-weight:600;margin-bottom:12px;">${tracking.number}</div>
+        ${
+          tracking.url
+            ? `<a href="${tracking.url}" style="display:inline-block;background:${BRAND_GOLD};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:4px;">Rastrear pedido</a>`
+            : ""
+        }
+      </div>`
     : ""
 
   return `
@@ -69,9 +122,9 @@ export function orderStatusHtml({ order, stage, tracking }: OrderStatusData): st
       <p style="color:#888;font-size:13px;margin:8px 0 0 0;">Pedido #${order.display_id}</p>
     </div>
     <div style="padding:8px 24px 24px 24px;">
-      <table style="width:100%;">
-        ${trackingHtml}
-      </table>
+      ${itemsHtml}
+      ${trackingHtml}
+      ${direccionHtml}
     </div>
     <div style="background:#f8f8f8;padding:24px;border-top:1px solid #eee;">
       <p style="color:#888;font-size:12px;line-height:1.6;margin:0 0 8px 0;text-align:center;">
