@@ -239,7 +239,10 @@ export default async function normalizeStore({ container }: ExecArgs) {
       if (!DRY_RUN) {
         try {
           await revokeApiKeysWorkflow(container).run({
-            input: { ids: duplicateKeys.map((k: any) => k.id) },
+            input: {
+              selector: { id: duplicateKeys.map((k: any) => k.id) },
+              revoke: { revoked_by: "normalize-store-script" },
+            },
           })
           log(`  -> ✅ Revocadas.`)
         } catch (e) {
@@ -373,8 +376,11 @@ export default async function normalizeStore({ container }: ExecArgs) {
           ],
           filters: { id: v.id },
         })
-        const variant = variantData[0]
-        const existingItem = (variant?.inventory_items ?? [])[0]
+        // Se castea a `any`: el tipo autogenerado de query-entry-points para
+        // la relación variant.inventory_items no expone estos campos anidados
+        // de forma estática (mismo patrón usado en set-inventory.ts / fix-ninos.ts).
+        const variant = variantData[0] as any
+        const existingItem: any = (variant?.inventory_items ?? [])[0]
 
         if (existingItem && !isJunkSku(existingItem.sku)) {
           officialInventoryItemIds.add(existingItem.id)
