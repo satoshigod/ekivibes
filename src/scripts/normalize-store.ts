@@ -358,125 +358,137 @@ export default async function normalizeStore({ container }: ExecArgs) {
   let allVariantsHealthy = true
 
   if (!stockLocation) {
-    log(`  -> ⚠️  Saltando saneamiento: no hay Stock Location resuelta.`)
-    allVariantsHealthy = false
-  } else {
-    for (const v of realVariants) {
-      try {
-        const { data: variantData } = await query.graph({
-          entity: "product_variant",
-          fields: [
-            "id",
-            "sku",
-            "manage_inventory",
-            "inventory_items.id",
-            "inventory_items.sku",
-            "inventory_items.location_levels.location_id",
-            "inventory_items.location_levels.stocked_quantity",
-          ],
-          filters: { id: v.id },
-        })
-        // Se castea a `any`: el tipo autogenerado de query-entry-points para
-        // la relación variant.inventory_items no expone estos campos anidados
-        // de forma estática (mismo patrón usado en set-inventory.ts / fix-ninos.ts).
-        const variant = variantData[0] as any
-        const existingItem: any = (variant?.inventory_items ?? [])[0]
+    log(
+      `  -> ℹ️  Bodega Principal aún no existe (se crea en el mismo run cuando DRY_RUN=false). Se audita cada variante igual; la verificación/creación de NIVELES de stock queda como "se aplicaría" hasta ese momento.`
+    )
+  }
 
-        if (existingItem && !isJunkSku(existingItem.sku)) {
-          officialInventoryItemIds.add(existingItem.id)
-          const level = (existingItem.location_levels ?? []).find(
-            (l: any) => l.location_id === stockLocation.id
-          )
-          if (!level) {
-            log(`  -> "${v.product_title}" [${v.sku}]: inventory item OK pero sin nivel en Bodega Principal.`)
-            if (!DRY_RUN) {
-              await createInventoryLevelsWorkflow(container).run({
-                input: {
-                  inventory_levels: [
-                    {
-                      inventory_item_id: existingItem.id,
-                      location_id: stockLocation.id,
-                      stocked_quantity: TARGET_STOCK_QTY,
-                    },
-                  ],
-                },
-              })
-              log(`     -> ✅ Nivel de stock creado (${TARGET_STOCK_QTY} u.).`)
-            } else {
-              log(`     -> [DRY_RUN] Se crearía nivel de stock (${TARGET_STOCK_QTY} u.).`)
-            }
-          } else if (level.stocked_quantity <= 0) {
-            log(`  -> "${v.product_title}" [${v.sku}]: stock en 0 en Bodega Principal.`)
-            if (!DRY_RUN) {
-              await updateInventoryLevelsWorkflow(container).run({
-                input: {
-                  updates: [
-                    {
-                      inventory_item_id: existingItem.id,
-                      location_id: stockLocation.id,
-                      stocked_quantity: TARGET_STOCK_QTY,
-                    },
-                  ],
-                },
-              })
-              log(`     -> ✅ Stock actualizado a ${TARGET_STOCK_QTY} u.`)
-            } else {
-              log(`     -> [DRY_RUN] Se actualizaría a ${TARGET_STOCK_QTY} u.`)
-            }
+  for (const v of realVariants) {
+    try {
+      const { data: variantData } = await query.graph({
+        entity: "product_variant",
+        fields: [
+          "id",
+          "sku",
+          "manage_inventory",
+          "inventory_items.id",
+          "inventory_items.sku",
+          "inventory_items.location_levels.location_id",
+          "inventory_items.location_levels.stocked_quantity",
+        ],
+        filters: { id: v.id },
+      })
+      // Se castea a `any`: el tipo autogenerado de query-entry-points para
+      // la relación variant.inventory_items no expone estos campos anidados
+      // de forma estática (mismo patrón usado en set-inventory.ts / fix-ninos.ts).
+      const variant = variantData[0] as any
+      const existingItem: any = (variant?.inventory_items ?? [])[0]
+
+      if (existingItem && !isJunkSku(existingItem.sku)) {
+        officialInventoryItemIds.add(existingItem.id)
+        const level = stockLocation
+          ? (existingItem.location_levels ?? []).find(
+              (l: any) => l.location_id === stockLocation.id
+            )
+          : null
+
+        if (!stockLocation) {
+          log(`  -> "${v.product_title}" [${v.sku}]: inventory item OK (${existingItem.id}). Nivel en Bodega Principal se creará/verificará cuando exista la bodega.`)
+        } else if (!level) {
+          log(`  -> "${v.product_title}" [${v.sku}]: inventory item OK pero sin nivel en Bodega Principal.`)
+          if (!DRY_RUN) {
+            await createInventoryLevelsWorkflow(container).run({
+              input: {
+                inventory_levels: [
+                  {
+                    inventory_item_id: existingItem.id,
+                    location_id: stockLocation.id,
+                    stocked_quantity: TARGET_STOCK_QTY,
+                  },
+                ],
+              },
+            })
+            log(`     -> ✅ Nivel de stock creado (${TARGET_STOCK_QTY} u.).`)
           } else {
-            log(`  -> ✅ "${v.product_title}" [${v.sku}]: OK (${level.stocked_quantity} u. en Bodega Principal).`)
+            log(`     -> [DRY_RUN] Se crearía nivel de stock (${TARGET_STOCK_QTY} u.).`)
           }
-          continue
-        }
-
-        // No tiene inventory item válido (o el existente es basura) -> crear uno nuevo
-        if (isJunkSku(v.sku)) {
-          log(
-            `  -> ⚠️  "${v.product_title}" [id ${v.id}]: SKU de variante vacío o inválido ("${v.sku}"). NO se genera un SKU automáticamente — requiere revisión manual antes de crear su inventory item.`
-          )
-          allVariantsHealthy = false
-          continue
-        }
-
-        log(`  -> "${v.product_title}" [${v.sku}]: sin inventory item válido. Se creará uno nuevo con SKU oficial.`)
-        if (!DRY_RUN) {
-          const { result: newItems } = await createInventoryItemsWorkflow(container).run({
-            input: {
-              items: [
-                {
-                  sku: v.sku,
-                  location_levels: [
-                    {
-                      location_id: stockLocation.id,
-                      stocked_quantity: TARGET_STOCK_QTY,
-                    },
-                  ],
-                },
-              ],
-            },
-          })
-          const newItem = newItems[0]
-          await link.create({
-            [Modules.PRODUCT]: { product_variant_id: v.id },
-            [Modules.INVENTORY]: { inventory_item_id: newItem.id },
-          })
-          officialInventoryItemIds.add(newItem.id)
-          log(`     -> ✅ Creado y vinculado: ${newItem.id} (${TARGET_STOCK_QTY} u. en Bodega Principal).`)
+        } else if (level.stocked_quantity <= 0) {
+          log(`  -> "${v.product_title}" [${v.sku}]: stock en 0 en Bodega Principal.`)
+          if (!DRY_RUN) {
+            await updateInventoryLevelsWorkflow(container).run({
+              input: {
+                updates: [
+                  {
+                    inventory_item_id: existingItem.id,
+                    location_id: stockLocation.id,
+                    stocked_quantity: TARGET_STOCK_QTY,
+                  },
+                ],
+              },
+            })
+            log(`     -> ✅ Stock actualizado a ${TARGET_STOCK_QTY} u.`)
+          } else {
+            log(`     -> [DRY_RUN] Se actualizaría a ${TARGET_STOCK_QTY} u.`)
+          }
         } else {
-          log(`     -> [DRY_RUN] Se crearía inventory item + nivel de stock + vínculo a la variante.`)
+          log(`  -> ✅ "${v.product_title}" [${v.sku}]: OK (${level.stocked_quantity} u. en Bodega Principal).`)
         }
-      } catch (e) {
-        logErr(`Inventario de variante ${v.sku ?? v.id}`, e)
-        allVariantsHealthy = false
+        continue
       }
+
+      // No tiene inventory item válido (o el existente es basura) -> crear uno nuevo.
+      // Nunca se elimina la variante/producto: solo se le crea/repara su inventario.
+      if (isJunkSku(v.sku)) {
+        log(
+          `  -> ⚠️  "${v.product_title}" [id ${v.id}]: SKU de variante vacío o inválido ("${v.sku}"). NO se genera un SKU automáticamente — requiere revisión manual antes de crear su inventory item.`
+        )
+        allVariantsHealthy = false
+        continue
+      }
+
+      log(`  -> "${v.product_title}" [${v.sku}]: sin inventory item válido. Se creará uno nuevo con SKU oficial.`)
+      if (!DRY_RUN && stockLocation) {
+        const { result: newItems } = await createInventoryItemsWorkflow(container).run({
+          input: {
+            items: [
+              {
+                sku: v.sku,
+                location_levels: [
+                  {
+                    location_id: stockLocation.id,
+                    stocked_quantity: TARGET_STOCK_QTY,
+                  },
+                ],
+              },
+            ],
+          },
+        })
+        const newItem = newItems[0]
+        await link.create({
+          [Modules.PRODUCT]: { product_variant_id: v.id },
+          [Modules.INVENTORY]: { inventory_item_id: newItem.id },
+        })
+        officialInventoryItemIds.add(newItem.id)
+        log(`     -> ✅ Creado y vinculado: ${newItem.id} (${TARGET_STOCK_QTY} u. en Bodega Principal).`)
+      } else if (!DRY_RUN && !stockLocation) {
+        // No debería ocurrir: Fase 1 crea la bodega antes de llegar aquí en modo real.
+        logErr(`Inventario de variante ${v.sku}`, new Error("Bodega Principal no disponible en modo real."))
+        allVariantsHealthy = false
+      } else {
+        log(`     -> [DRY_RUN] Se crearía inventory item + nivel de stock + vínculo a la variante.`)
+      }
+    } catch (e) {
+      logErr(`Inventario de variante ${v.sku ?? v.id}`, e)
+      allVariantsHealthy = false
     }
   }
 
   // Limpieza de huérfanos/fantasma — SOLO si todo lo anterior salió bien
   log("\n[FASE 4b] Limpieza de inventory items huérfanos/fantasma")
-  if (!allVariantsHealthy && !DRY_RUN) {
+  const allVariantsCovered = officialInventoryItemIds.size >= realVariants.length
+  if (!DRY_RUN && (!allVariantsHealthy || !allVariantsCovered)) {
     log(
-      `  -> ⚠️  Se detectaron variantes que requieren revisión manual (ver arriba). NO se eliminan huérfanos en esta corrida por seguridad. Vuelve a ejecutar el script tras resolverlas.`
+      `  -> ⚠️  No todas las variantes quedaron con inventory item confirmado (${officialInventoryItemIds.size}/${realVariants.length}) o hay problemas pendientes arriba. NO se eliminan huérfanos en esta corrida por seguridad. Vuelve a correr el script tras resolverlo.`
     )
   } else {
     try {
