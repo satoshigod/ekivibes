@@ -511,12 +511,12 @@ export default async function normalizeStore({ container }: ExecArgs) {
           if (!DRY_RUN) {
             if (!conflictLinkedToThisVariant) {
               await link.create({
-                [Modules.PRODUCT]: { product_variant_id: v.id },
+                [Modules.PRODUCT]: { variant_id: v.id },
                 [Modules.INVENTORY]: { inventory_item_id: conflictItem.id },
               })
             }
             await link.dismiss({
-              [Modules.PRODUCT]: { product_variant_id: v.id },
+              [Modules.PRODUCT]: { variant_id: v.id },
               [Modules.INVENTORY]: { inventory_item_id: existingItem.id },
             })
             log(`     -> ✅ Adoptado "${conflictItem.id}", desvinculado "${existingItem.id}".`)
@@ -606,7 +606,7 @@ export default async function normalizeStore({ container }: ExecArgs) {
         log(`  -> "${v.product_title}" [talla "${v.title}"]: sin inventory item vinculado, pero "${targetSku}" ya existe como item huérfano (${orphanWithTargetSku.id}). Se vincula ese en vez de crear uno nuevo.`)
         if (!DRY_RUN) {
           await link.create({
-            [Modules.PRODUCT]: { product_variant_id: v.id },
+            [Modules.PRODUCT]: { variant_id: v.id },
             [Modules.INVENTORY]: { inventory_item_id: orphanWithTargetSku.id },
           })
           log(`     -> ✅ Vinculado.`)
@@ -659,7 +659,7 @@ export default async function normalizeStore({ container }: ExecArgs) {
         })
         const newItem = newItems[0]
         await link.create({
-          [Modules.PRODUCT]: { product_variant_id: v.id },
+          [Modules.PRODUCT]: { variant_id: v.id },
           [Modules.INVENTORY]: { inventory_item_id: newItem.id },
         })
         officialInventoryItemIds.add(newItem.id)
