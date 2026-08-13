@@ -412,6 +412,7 @@ export default async function normalizeStore({ container }: ExecArgs) {
   log("\n[FASE 4] Saneamiento de inventario")
 
   const officialInventoryItemIds = new Set<string>()
+  const demotedItemIds = new Set<string>() // items desvinculados en esta corrida por conflicto de SKU -> basura confirmada, se borran en 4b pase lo que pase con su nombre
   let allVariantsHealthy = true
 
   if (!stockLocation) {
@@ -420,12 +421,16 @@ export default async function normalizeStore({ container }: ExecArgs) {
     )
   }
 
-  // Mapa variant_id -> InventoryItem real, consultado desde el LADO del
-  // inventory_item (con su relación inversa `variants`). Consultar desde
+  // Mapa variant_id -> InventoryItem real, y mapa sku -> InventoryItem para
+  // detectar conflictos (una variante puede tener MÁS DE UN item vinculado
+  // por scripts de parche anteriores; el mapa por variante se queda con
+  // uno solo por orden de llegada, así que el de sku se usa para encontrar
+  // el "bueno" cuando el renombrado choca con un SKU que ya existe en otro item).
+  // Se consulta desde el LADO del inventory_item (relación inversa `variants`):
   // product_variant.inventory_items.* devuelve el id de la fila de VÍNCULO
-  // (prefijo pvitem_), no el id real del InventoryItem (prefijo iitem_) —
-  // por eso se evita ese camino aquí.
+  // (prefijo pvitem_), no el id real del InventoryItem (prefijo iitem_).
   const variantIdToItem = new Map<string, any>()
+  const skuToItem = new Map<string, any>()
   try {
     const { data: allItemsWithVariants } = await query.graph({
       entity: "inventory_item",
@@ -438,6 +443,7 @@ export default async function normalizeStore({ container }: ExecArgs) {
       ],
     })
     for (const item of allItemsWithVariants as any[]) {
+      if (item.sku) skuToItem.set(item.sku, item)
       for (const v of item.variants ?? []) {
         variantIdToItem.set(v.id, item)
       }
@@ -476,7 +482,51 @@ export default async function normalizeStore({ container }: ExecArgs) {
       }
 
       // 3. Verificar/crear el inventory item + nivel de stock con el SKU oficial.
-      const existingItem: any = variantIdToItem.get(v.id)
+      let existingItem: any = variantIdToItem.get(v.id)
+
+      // 3a. Si el item vinculado NO tiene ya el SKU oficial, verificar si ese SKU
+      // ya lo tiene OTRO item en la base (residuo de un item bueno original que
+      // un script de parche viejo no desvinculó al agregar uno de basura extra).
+      if (existingItem && existingItem.sku !== targetSku) {
+        const conflictItem = skuToItem.get(targetSku)
+        if (conflictItem && conflictItem.id !== existingItem.id) {
+          const conflictLinkedToThisVariant = (conflictItem.variants ?? []).some((cv: any) => cv.id === v.id)
+          const conflictLinkedToOtherVariant =
+            !conflictLinkedToThisVariant && (conflictItem.variants ?? []).length > 0
+
+          if (conflictLinkedToOtherVariant) {
+            log(
+              `  -> ⚠️  "${v.product_title}" [talla "${v.title}"]: el SKU "${targetSku}" ya pertenece a otro InventoryItem (${conflictItem.id}) vinculado a OTRA variante. NO se toca — requiere revisión manual.`
+            )
+            allVariantsHealthy = false
+            continue
+          }
+
+          // El item con el SKU oficial existe (vinculado a esta misma variante ya,
+          // o huérfano) -> se adopta como el bueno; el item de basura actual se
+          // desvincula para que quede huérfano y lo limpie la Fase 4b.
+          log(
+            `  -> "${v.product_title}" [talla "${v.title}"]: "${targetSku}" ya existe en otro InventoryItem (${conflictItem.id}, ${conflictLinkedToThisVariant ? "ya vinculado a esta variante" : "huérfano"}). Se adopta ese y se desvincula el de basura (${existingItem.id}).`
+          )
+          if (!DRY_RUN) {
+            if (!conflictLinkedToThisVariant) {
+              await link.create({
+                [Modules.PRODUCT]: { product_variant_id: v.id },
+                [Modules.INVENTORY]: { inventory_item_id: conflictItem.id },
+              })
+            }
+            await link.dismiss({
+              [Modules.PRODUCT]: { product_variant_id: v.id },
+              [Modules.INVENTORY]: { inventory_item_id: existingItem.id },
+            })
+            log(`     -> ✅ Adoptado "${conflictItem.id}", desvinculado "${existingItem.id}".`)
+          } else {
+            log(`     -> [DRY_RUN] Se adoptaría "${conflictItem.id}" y se desvincularía "${existingItem.id}".`)
+          }
+          demotedItemIds.add(existingItem.id)
+          existingItem = conflictItem
+        }
+      }
 
       if (existingItem) {
         officialInventoryItemIds.add(existingItem.id)
@@ -540,7 +590,55 @@ export default async function normalizeStore({ container }: ExecArgs) {
         continue
       }
 
-      // No tiene inventory item -> crear uno nuevo con el SKU oficial.
+      // No tiene inventory item -> verificar primero si el SKU oficial ya existe
+      // como item huérfano/de otra variante en algún lado (mismo caso que 3a,
+      // por si en el futuro se agrega una variante sin ningún vínculo previo).
+      const orphanWithTargetSku = skuToItem.get(targetSku)
+      if (orphanWithTargetSku) {
+        const linkedToOtherVariant = (orphanWithTargetSku.variants ?? []).length > 0
+        if (linkedToOtherVariant) {
+          log(
+            `  -> ⚠️  "${v.product_title}" [talla "${v.title}"]: sin inventory item, pero el SKU "${targetSku}" ya pertenece a otro InventoryItem (${orphanWithTargetSku.id}) vinculado a OTRA variante. NO se crea nada — requiere revisión manual.`
+          )
+          allVariantsHealthy = false
+          continue
+        }
+        log(`  -> "${v.product_title}" [talla "${v.title}"]: sin inventory item vinculado, pero "${targetSku}" ya existe como item huérfano (${orphanWithTargetSku.id}). Se vincula ese en vez de crear uno nuevo.`)
+        if (!DRY_RUN) {
+          await link.create({
+            [Modules.PRODUCT]: { product_variant_id: v.id },
+            [Modules.INVENTORY]: { inventory_item_id: orphanWithTargetSku.id },
+          })
+          log(`     -> ✅ Vinculado.`)
+        } else {
+          log(`     -> [DRY_RUN] Se vincularía.`)
+        }
+        officialInventoryItemIds.add(orphanWithTargetSku.id)
+        existingItem = orphanWithTargetSku
+        // Cae al bloque de arriba en la siguiente iteración lógica: como ya no
+        // hay más código después de esto en esta rama, se resuelve el nivel de
+        // stock igual que el resto (se re-evalúa a mano aquí, sin duplicar todo el bloque).
+        const level2 = stockLocation
+          ? (orphanWithTargetSku.location_levels ?? []).find((l: any) => l.location_id === stockLocation.id)
+          : null
+        if (stockLocation && !level2) {
+          if (!DRY_RUN) {
+            await createInventoryLevelsWorkflow(container).run({
+              input: {
+                inventory_levels: [
+                  { inventory_item_id: orphanWithTargetSku.id, location_id: stockLocation.id, stocked_quantity: TARGET_STOCK_QTY },
+                ],
+              },
+            })
+            log(`     -> ✅ Nivel de stock creado (${TARGET_STOCK_QTY} u.).`)
+          } else {
+            log(`     -> [DRY_RUN] Se crearía nivel de stock (${TARGET_STOCK_QTY} u.).`)
+          }
+        }
+        continue
+      }
+
+      // No tiene inventory item ni existe huérfano con ese SKU -> crear uno nuevo.
       // Nunca se elimina la variante/producto: solo se le crea/repara su inventario.
       log(`  -> "${v.product_title}" [${targetSku}]: sin inventory item. Se creará uno nuevo.`)
       if (!DRY_RUN && stockLocation) {
@@ -590,7 +688,9 @@ export default async function normalizeStore({ container }: ExecArgs) {
     try {
       const allItems = await inventoryModuleService.listInventoryItems({})
       const junkItems = allItems.filter(
-        (item: any) => isJunkSku(item.sku) && !officialInventoryItemIds.has(item.id)
+        (item: any) =>
+          !officialInventoryItemIds.has(item.id) &&
+          (isJunkSku(item.sku) || demotedItemIds.has(item.id))
       )
       log(`  -> ${allItems.length} inventory item(s) totales. ${junkItems.length} candidato(s) a eliminar.`)
       for (const item of junkItems) {
