@@ -420,6 +420,32 @@ export default async function normalizeStore({ container }: ExecArgs) {
     )
   }
 
+  // Mapa variant_id -> InventoryItem real, consultado desde el LADO del
+  // inventory_item (con su relación inversa `variants`). Consultar desde
+  // product_variant.inventory_items.* devuelve el id de la fila de VÍNCULO
+  // (prefijo pvitem_), no el id real del InventoryItem (prefijo iitem_) —
+  // por eso se evita ese camino aquí.
+  const variantIdToItem = new Map<string, any>()
+  try {
+    const { data: allItemsWithVariants } = await query.graph({
+      entity: "inventory_item",
+      fields: [
+        "id",
+        "sku",
+        "location_levels.location_id",
+        "location_levels.stocked_quantity",
+        "variants.id",
+      ],
+    })
+    for (const item of allItemsWithVariants as any[]) {
+      for (const v of item.variants ?? []) {
+        variantIdToItem.set(v.id, item)
+      }
+    }
+  } catch (e) {
+    logErr("Mapeo inventory_item <-> variant", e)
+  }
+
   for (const v of realVariants) {
     try {
       // 1. Resolver el SKU oficial a partir del producto + talla real (variant.title).
@@ -450,24 +476,7 @@ export default async function normalizeStore({ container }: ExecArgs) {
       }
 
       // 3. Verificar/crear el inventory item + nivel de stock con el SKU oficial.
-      const { data: variantData } = await query.graph({
-        entity: "product_variant",
-        fields: [
-          "id",
-          "sku",
-          "manage_inventory",
-          "inventory_items.id",
-          "inventory_items.sku",
-          "inventory_items.location_levels.location_id",
-          "inventory_items.location_levels.stocked_quantity",
-        ],
-        filters: { id: v.id },
-      })
-      // Se castea a `any`: el tipo autogenerado de query-entry-points para
-      // la relación variant.inventory_items no expone estos campos anidados
-      // de forma estática (mismo patrón usado en set-inventory.ts / fix-ninos.ts).
-      const variant = variantData[0] as any
-      const existingItem: any = (variant?.inventory_items ?? [])[0]
+      const existingItem: any = variantIdToItem.get(v.id)
 
       if (existingItem) {
         officialInventoryItemIds.add(existingItem.id)
