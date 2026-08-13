@@ -2,6 +2,7 @@ import { AbstractNotificationProviderService, MedusaError } from "@medusajs/fram
 import { Logger } from "@medusajs/framework/types"
 import { Resend } from "resend"
 import { orderPlacedHtml } from "./templates/order-placed"
+import { orderStatusHtml } from "./templates/order-status"
 
 type ResendOptions = {
   api_key: string
@@ -10,15 +11,27 @@ type ResendOptions = {
 
 enum Templates {
   ORDER_PLACED = "order-placed",
+  ORDER_FULFILLED = "order-fulfilled",
+  ORDER_SHIPPED = "order-shipped",
+  ORDER_DELIVERED = "order-delivered",
 }
 
 const templates: Record<string, (data: any) => string> = {
   [Templates.ORDER_PLACED]: orderPlacedHtml,
+  [Templates.ORDER_FULFILLED]: (data: any) => orderStatusHtml({ ...data, stage: "fulfilled" }),
+  [Templates.ORDER_SHIPPED]: (data: any) => orderStatusHtml({ ...data, stage: "shipped" }),
+  [Templates.ORDER_DELIVERED]: (data: any) => orderStatusHtml({ ...data, stage: "delivered" }),
 }
 
 const subjectBuilders: Record<string, (data: any) => string> = {
   [Templates.ORDER_PLACED]: (data: any) =>
     `Confirmación de tu pedido #${data?.order?.display_id ?? ""} - Ekivibes`,
+  [Templates.ORDER_FULFILLED]: (data: any) =>
+    `Tu pedido #${data?.order?.display_id ?? ""} está siendo preparado - Ekivibes`,
+  [Templates.ORDER_SHIPPED]: (data: any) =>
+    `Tu pedido #${data?.order?.display_id ?? ""} va en camino - Ekivibes`,
+  [Templates.ORDER_DELIVERED]: (data: any) =>
+    `Tu pedido #${data?.order?.display_id ?? ""} fue entregado - Ekivibes`,
 }
 
 type InjectedDependencies = { logger: Logger }
