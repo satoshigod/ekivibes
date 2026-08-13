@@ -15,6 +15,7 @@ export const sendOrderFulfilledWorkflow = createWorkflow(
         "email",
         "currency_code",
         "total",
+        "items.*",
         "shipping_address.*",
       ],
       filters: { id: order_id },
