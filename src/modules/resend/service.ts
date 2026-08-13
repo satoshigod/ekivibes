@@ -16,8 +16,9 @@ const templates: Record<string, (data: any) => string> = {
   [Templates.ORDER_PLACED]: orderPlacedHtml,
 }
 
-const subjects: Record<string, string> = {
-  [Templates.ORDER_PLACED]: "Confirmación de tu pedido - Ekivibes",
+const subjectBuilders: Record<string, (data: any) => string> = {
+  [Templates.ORDER_PLACED]: (data: any) =>
+    `Confirmación de tu pedido #${data?.order?.display_id ?? ""} - Ekivibes`,
 }
 
 type InjectedDependencies = { logger: Logger }
@@ -52,11 +53,13 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     }
 
     const html = templateFn(notification.data)
+    const subjectFn = subjectBuilders[notification.template]
+    const subject = subjectFn ? subjectFn(notification.data) : "Ekivibes"
 
     const { data, error } = await this.resendClient.emails.send({
       from: this.options.from,
       to: [notification.to],
-      subject: subjects[notification.template] || "Ekivibes",
+      subject,
       html,
     })
 
