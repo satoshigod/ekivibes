@@ -33,6 +33,7 @@ import {
   createStockLocationsWorkflow,
   linkSalesChannelsToStockLocationWorkflow,
   linkProductsToSalesChannelWorkflow,
+  updateProductVariantsWorkflow,
   createInventoryItemsWorkflow,
   createInventoryLevelsWorkflow,
   updateInventoryLevelsWorkflow,
@@ -50,6 +51,62 @@ const JUNK_SKU_PREFIXES = ["sweep-", "fix-", "inv-v6-", "inv-variant_"]
 const isJunkSku = (sku?: string | null) => {
   if (!sku || sku.trim() === "") return true
   return JUNK_SKU_PREFIXES.some((p) => sku.startsWith(p))
+}
+
+// ---------------------------------------------------------------------------
+// SKU OFICIAL POR PRODUCTO — confirmado explícitamente por Ivan (2026-08-13).
+// Todos los valores son ASCII puro (sin Ñ/tildes) por requisito de compatibilidad
+// con la API de Medusa v2. `sizeMap` se resuelve contra el `title` real de la
+// variante en la base de datos — nunca se adivina el orden de las variantes.
+// ---------------------------------------------------------------------------
+type SkuConfig = { sizeMap?: Record<string, string>; fixedSku?: string }
+
+const PRODUCT_SKU_CONFIG: Record<string, SkuConfig> = {
+  "Chaleco Airbag VH (Juvenil / Adulto)": {
+    sizeMap: { S: "VH-ADU-S", M: "VH-ADU-M", L: "VH-ADU-L" },
+  },
+  "Chaleco Airbag MLV3-H (Juvenil / Adulto)": {
+    sizeMap: { XS: "MLV-ADU-XS", S: "MLV-ADU-S", M: "MLV-ADU-M", L: "MLV-ADU-L" },
+  },
+  "Lanyard Bungee All-in-One Hit-Air": {
+    sizeMap: { XS: "LANYARD-XS", S: "LANYARD-S", L: "LANYARD-L" },
+  },
+  "Chaleco Airbag VH Niños": { fixedSku: "VH-NIN-XS" },
+  "Chaleco Airbag MLV3-H Niños": { fixedSku: "MLV-NIN-2XS" },
+  "Cartucho de CO2 Hit-Air 50cc": { fixedSku: "CO2-50CC" },
+  "Cartucho de CO2 Hit-Air 60cc": { fixedSku: "CO2-60CC" },
+  "Llave de Resina Tipo B Hit-Air": { fixedSku: "KEY-RESIN" },
+}
+
+// Sanitiza a ASCII puro (mayúsculas, sin tildes/Ñ, solo A-Z0-9-) como defensa
+// adicional, incluso si el valor ya viene "limpio" desde PRODUCT_SKU_CONFIG.
+const toAsciiSku = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, "")
+
+const normalizeSizeLabel = (s?: string | null) =>
+  (s ?? "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+
+// Resuelve el SKU oficial para una variante a partir del título real del
+// producto y de la variante (la "talla" en Medusa vive en variant.title).
+// Devuelve null si no hay match — nunca inventa un SKU a ciegas.
+const resolveTargetSku = (productTitle: string, variantTitle?: string | null): string | null => {
+  const cfg = PRODUCT_SKU_CONFIG[productTitle]
+  if (!cfg) return null
+  if (cfg.fixedSku) return toAsciiSku(cfg.fixedSku)
+  if (cfg.sizeMap) {
+    const key = normalizeSizeLabel(variantTitle)
+    const match = cfg.sizeMap[key]
+    return match ? toAsciiSku(match) : null
+  }
+  return null
 }
 
 export default async function normalizeStore({ container }: ExecArgs) {
@@ -302,7 +359,7 @@ export default async function normalizeStore({ container }: ExecArgs) {
   try {
     const { data: products } = await query.graph({
       entity: "product",
-      fields: ["id", "title", "sales_channels.id", "sales_channels.name", "variants.id", "variants.sku"],
+      fields: ["id", "title", "sales_channels.id", "sales_channels.name", "variants.id", "variants.title", "variants.sku"],
     })
 
     log(`  -> ${products.length} producto(s) encontrado(s) (se esperaban 8).`)
@@ -365,6 +422,34 @@ export default async function normalizeStore({ container }: ExecArgs) {
 
   for (const v of realVariants) {
     try {
+      // 1. Resolver el SKU oficial a partir del producto + talla real (variant.title).
+      const targetSku = resolveTargetSku(v.product_title, v.title)
+
+      if (!targetSku) {
+        log(
+          `  -> ⚠️  "${v.product_title}" [talla/título: "${v.title ?? "(vacío)"}", id ${v.id}]: no reconozco esta variante en el mapeo de SKUs confirmado. NO se genera nada — requiere revisión manual.`
+        )
+        allVariantsHealthy = false
+        continue
+      }
+
+      // 2. Si el SKU actual de la variante no coincide con el oficial, renombrarlo.
+      let effectiveSku = v.sku
+      if (v.sku !== targetSku) {
+        log(`  -> "${v.product_title}" [talla "${v.title}"]: SKU actual "${v.sku ?? "null"}" -> oficial "${targetSku}".`)
+        if (!DRY_RUN) {
+          await updateProductVariantsWorkflow(container).run({
+            input: { product_variants: [{ id: v.id, sku: targetSku }] },
+          })
+          effectiveSku = targetSku
+          log(`     -> ✅ SKU de la variante actualizado a "${targetSku}".`)
+        } else {
+          log(`     -> [DRY_RUN] Se actualizaría el SKU de la variante a "${targetSku}".`)
+          effectiveSku = targetSku // para que el resto del audit razone sobre el estado post-fix
+        }
+      }
+
+      // 3. Verificar/crear el inventory item + nivel de stock con el SKU oficial.
       const { data: variantData } = await query.graph({
         entity: "product_variant",
         fields: [
@@ -384,18 +469,28 @@ export default async function normalizeStore({ container }: ExecArgs) {
       const variant = variantData[0] as any
       const existingItem: any = (variant?.inventory_items ?? [])[0]
 
-      if (existingItem && !isJunkSku(existingItem.sku)) {
+      if (existingItem) {
         officialInventoryItemIds.add(existingItem.id)
+
+        // El inventory item puede existir con un sku desactualizado (ej. "-clean"/"-v5").
+        if (existingItem.sku !== targetSku) {
+          log(`  -> "${v.product_title}" [${targetSku}]: su inventory item tiene SKU desactualizado ("${existingItem.sku ?? "null"}").`)
+          if (!DRY_RUN) {
+            await inventoryModuleService.updateInventoryItems({ id: existingItem.id, sku: targetSku })
+            log(`     -> ✅ SKU del inventory item actualizado a "${targetSku}".`)
+          } else {
+            log(`     -> [DRY_RUN] Se actualizaría el SKU del inventory item a "${targetSku}".`)
+          }
+        }
+
         const level = stockLocation
-          ? (existingItem.location_levels ?? []).find(
-              (l: any) => l.location_id === stockLocation.id
-            )
+          ? (existingItem.location_levels ?? []).find((l: any) => l.location_id === stockLocation.id)
           : null
 
         if (!stockLocation) {
-          log(`  -> "${v.product_title}" [${v.sku}]: inventory item OK (${existingItem.id}). Nivel en Bodega Principal se creará/verificará cuando exista la bodega.`)
+          log(`  -> "${v.product_title}" [${targetSku}]: inventory item OK (${existingItem.id}). Nivel en Bodega Principal se creará/verificará cuando exista la bodega.`)
         } else if (!level) {
-          log(`  -> "${v.product_title}" [${v.sku}]: inventory item OK pero sin nivel en Bodega Principal.`)
+          log(`  -> "${v.product_title}" [${targetSku}]: inventory item OK pero sin nivel en Bodega Principal.`)
           if (!DRY_RUN) {
             await createInventoryLevelsWorkflow(container).run({
               input: {
@@ -413,7 +508,7 @@ export default async function normalizeStore({ container }: ExecArgs) {
             log(`     -> [DRY_RUN] Se crearía nivel de stock (${TARGET_STOCK_QTY} u.).`)
           }
         } else if (level.stocked_quantity <= 0) {
-          log(`  -> "${v.product_title}" [${v.sku}]: stock en 0 en Bodega Principal.`)
+          log(`  -> "${v.product_title}" [${targetSku}]: stock en 0 en Bodega Principal.`)
           if (!DRY_RUN) {
             await updateInventoryLevelsWorkflow(container).run({
               input: {
@@ -431,28 +526,20 @@ export default async function normalizeStore({ container }: ExecArgs) {
             log(`     -> [DRY_RUN] Se actualizaría a ${TARGET_STOCK_QTY} u.`)
           }
         } else {
-          log(`  -> ✅ "${v.product_title}" [${v.sku}]: OK (${level.stocked_quantity} u. en Bodega Principal).`)
+          log(`  -> ✅ "${v.product_title}" [${targetSku}]: OK (${level.stocked_quantity} u. en Bodega Principal).`)
         }
         continue
       }
 
-      // No tiene inventory item válido (o el existente es basura) -> crear uno nuevo.
+      // No tiene inventory item -> crear uno nuevo con el SKU oficial.
       // Nunca se elimina la variante/producto: solo se le crea/repara su inventario.
-      if (isJunkSku(v.sku)) {
-        log(
-          `  -> ⚠️  "${v.product_title}" [id ${v.id}]: SKU de variante vacío o inválido ("${v.sku}"). NO se genera un SKU automáticamente — requiere revisión manual antes de crear su inventory item.`
-        )
-        allVariantsHealthy = false
-        continue
-      }
-
-      log(`  -> "${v.product_title}" [${v.sku}]: sin inventory item válido. Se creará uno nuevo con SKU oficial.`)
+      log(`  -> "${v.product_title}" [${targetSku}]: sin inventory item. Se creará uno nuevo.`)
       if (!DRY_RUN && stockLocation) {
         const { result: newItems } = await createInventoryItemsWorkflow(container).run({
           input: {
             items: [
               {
-                sku: v.sku,
+                sku: targetSku,
                 location_levels: [
                   {
                     location_id: stockLocation.id,
@@ -472,7 +559,7 @@ export default async function normalizeStore({ container }: ExecArgs) {
         log(`     -> ✅ Creado y vinculado: ${newItem.id} (${TARGET_STOCK_QTY} u. en Bodega Principal).`)
       } else if (!DRY_RUN && !stockLocation) {
         // No debería ocurrir: Fase 1 crea la bodega antes de llegar aquí en modo real.
-        logErr(`Inventario de variante ${v.sku}`, new Error("Bodega Principal no disponible en modo real."))
+        logErr(`Inventario de variante ${targetSku}`, new Error("Bodega Principal no disponible en modo real."))
         allVariantsHealthy = false
       } else {
         log(`     -> [DRY_RUN] Se crearía inventory item + nivel de stock + vínculo a la variante.`)
