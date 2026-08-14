@@ -50,6 +50,38 @@ module.exports = defineConfig({
       },
     },
     {
+      resolve: "@medusajs/medusa/fulfillment",
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/envia-fulfillment",
+            id: "envia",
+            options: {
+              apiToken: (process.env.ENVIA_API_TOKEN || "").trim(),
+              env: (process.env.ENVIA_ENV || "sandbox").trim(),
+              shippingBase:
+                (process.env.ENVIA_ENV || "sandbox").trim() === "production"
+                  ? "https://api.envia.com"
+                  : "https://api-test.envia.com",
+              queriesBase:
+                (process.env.ENVIA_ENV || "sandbox").trim() === "production"
+                  ? "https://queries.envia.com"
+                  : "https://queries-test.envia.com",
+              origin: {
+                name: process.env.ENVIA_ORIGIN_NAME,
+                phone: process.env.ENVIA_ORIGIN_PHONE,
+                street: process.env.ENVIA_ORIGIN_STREET,
+                city: process.env.ENVIA_ORIGIN_CITY,
+                state: process.env.ENVIA_ORIGIN_STATE,
+                postalCode: process.env.ENVIA_ORIGIN_POSTAL_CODE,
+                country: process.env.ENVIA_ORIGIN_COUNTRY || "CO",
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
       resolve: "@medusajs/medusa/notification",
       options: {
         providers: [
