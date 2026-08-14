@@ -166,6 +166,10 @@ export class EnviaClient {
         destination: req.destination,
         packages: req.packages,
         shipment: { type: 1, carrier: req.carrier, service: req.service },
+        // "settings" es obligatorio en /ship/generate/ (a diferencia de
+        // /ship/rate/, que no lo pide). printSize STOCK_4X6 es el formato
+        // térmico estándar 4x6"; cambiar si tu impresora usa otro tamaño.
+        settings: { printFormat: "PDF", printSize: "STOCK_4X6", currency: "COP" },
       }
     )
     const shipment = result.data?.[0]
