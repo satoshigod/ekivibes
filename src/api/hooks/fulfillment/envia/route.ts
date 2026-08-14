@@ -1,5 +1,5 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 /**
  * Webhook de Envia.com — regístralo una vez contra la Queries API sandbox:
@@ -11,6 +11,12 @@ import { Modules } from "@medusajs/framework/utils"
  * Nota: esta ruta vive fuera de /admin y /store, así que Medusa NO le aplica
  * auth automática (igual que /hooks/payment/wompi) — no requiere tocar
  * middlewares.ts para esto.
+ *
+ * FilterableOrderProps (order module) NO tiene un filtro `fulfillments` —
+ * por eso NO se puede hacer orderModuleService.listOrders({ fulfillments: {...} }).
+ * En su lugar se consulta la entidad `fulfillment` vía el Query Graph Module
+ * y se viaja hacia `order` como relación forward (mismo patrón ya usado en
+ * otras partes del backend para fulfillment -> order).
  */
 type EnviaWebhookPayload = {
   trackingNumber?: string
@@ -30,22 +36,26 @@ export async function POST(req: MedusaRequest<EnviaWebhookPayload>, res: MedusaR
       return res.sendStatus(200)
     }
 
-    const orderModuleService = req.scope.resolve(Modules.ORDER)
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-    const orders = await orderModuleService.listOrders(
-      { fulfillments: { labels: { tracking_number: trackingNumber } } },
-      { relations: ["fulfillments", "fulfillments.labels"] }
-    )
+    const { data: fulfillments } = await query.graph({
+      entity: "fulfillment",
+      fields: ["id", "order.id", "order.metadata", "labels.tracking_number"],
+      filters: {
+        labels: { tracking_number: trackingNumber },
+      },
+    })
 
-    const order = orders[0]
-    if (!order) {
+    const order = fulfillments[0]?.order
+    if (!order?.id) {
       console.warn("[ENVIA webhook] sin orden para tracking:", trackingNumber)
       return res.sendStatus(200)
     }
 
+    const orderModuleService = req.scope.resolve(Modules.ORDER)
     await orderModuleService.updateOrders(order.id, {
       metadata: {
-        ...order.metadata,
+        ...(order.metadata ?? {}),
         envia_tracking_status: payload.status ?? payload.event ?? "updated",
         envia_tracking_updated_at: new Date().toISOString(),
       },
@@ -58,3 +68,4 @@ export async function POST(req: MedusaRequest<EnviaWebhookPayload>, res: MedusaR
     res.sendStatus(200)
   }
 }
+
