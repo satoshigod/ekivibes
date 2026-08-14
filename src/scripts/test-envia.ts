@@ -124,25 +124,37 @@ export default async function testEnvia({ container }: ExecArgs) {
   if (!GENERATE) {
     log("\n[GENERATE=false] No se compró ninguna guía. Revisa los 'service' de arriba.")
     log("Para probar la generación real: GENERATE=true npx medusa exec ./src/scripts/test-envia.ts")
+    log("(Opcional: CARRIER=interrapidisimo SERVICE=ground para elegir cuál probar)")
     return
   }
 
   log("\n" + "=".repeat(70))
-  log("FASE 2: comprando guía real de prueba con Servientrega")
+  log("FASE 2: comprando guía real de prueba")
   log("=".repeat(70))
 
-  const service = firstServiceByCarrier["servientrega"]
+  const requestedCarrier = (process.env.CARRIER as EnviaCarrier) || undefined
+  const requestedService = process.env.SERVICE || undefined
+
+  const carrier: EnviaCarrier =
+    requestedCarrier ??
+    (CARRIERS.find((c) => firstServiceByCarrier[c]) as EnviaCarrier | undefined) ??
+    "servientrega"
+  const service = requestedService ?? firstServiceByCarrier[carrier]
+
   if (!service) {
-    log("❌ No hay 'service' de Servientrega disponible (revisa la Fase 1). Abortando.")
+    log(`❌ No hay 'service' disponible para "${carrier}" (revisa la Fase 1). Abortando.`)
+    log(`   Prueba con: CARRIER=interrapidisimo SERVICE=ground GENERATE=true npx medusa exec ./src/scripts/test-envia.ts`)
     return
   }
+
+  log(`Usando carrier="${carrier}" service="${service}"`)
 
   try {
     const shipment = await client.generate({
       origin,
       destination,
       packages,
-      carrier: "servientrega",
+      carrier,
       service,
     })
     log(`✅ Guía generada:`)
