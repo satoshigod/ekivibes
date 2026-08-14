@@ -1,8 +1,6 @@
 import { AbstractFulfillmentProviderService } from "@medusajs/framework/utils"
 import type { Logger } from "@medusajs/framework/types"
 import type {
-  CalculatedShippingOptionPrice,
-  CalculateShippingOptionPriceDTO,
   CreateFulfillmentResult,
   CreateShippingOptionDTO,
   FulfillmentDTO,
@@ -37,6 +35,13 @@ export type EnviaFulfillmentOptions = {
     postalCode: string
     country: string
   }
+  defaultPackage: {
+    weightKg: number
+    lengthCm: number
+    widthCm: number
+    heightCm: number
+    declaredValue: number
+  }
 }
 
 // Carriers colombianos habilitados — deben existir así de exactos en tu
@@ -68,8 +73,11 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
   }
 
   /**
-   * Un "fulfillment option" por carrier. El admin los usa para crear
-   * shipping options en Configuraciones > Envío, con price_type "calculated".
+   * Un "fulfillment option" por carrier — solo para GENERAR GUÍAS, no para
+   * cotizar. En Admin, crea las shipping options con price_type "flat"
+   * (tarifa fija $18.000 / gratis sobre $250.000 vía Price Rules nativas de
+   * Medusa: docs.medusajs.com/resources/commerce-modules/pricing/price-rules)
+   * y asigna este provider — el precio NUNCA sale de Envia.
    */
   async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
     return CARRIERS.map((c) => ({
@@ -86,7 +94,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
   ): Promise<any> {
     if (!context.shipping_address?.city || !context.shipping_address?.province) {
       throw new Error(
-        "Se requiere ciudad y departamento en la dirección de envío para cotizar con Envia.com"
+        "Se requiere ciudad y departamento en la dirección de envío para generar la guía con Envia.com"
       )
     }
     return data
@@ -96,69 +104,21 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
     return CARRIERS.some((c) => c.id === (data.id as string))
   }
 
-  /** Todas nuestras opciones son de precio calculado (tiempo real) */
-  async canCalculate(_data: CreateShippingOptionDTO): Promise<boolean> {
-    return true
-  }
-
   /**
-   * Cotización en tiempo real — se llama automáticamente cuando el
-   * storefront pide GET /store/shipping-options?cart_id=... para una
-   * shipping option con price_type: "calculated".
+   * false a propósito: el precio de envío es fijo (price_type "flat" +
+   * Price Rules en Medusa Admin), Envia.com NO cotiza en el checkout. Si
+   * alguien intenta crear una shipping option "calculated" con este
+   * provider, Medusa lo rechaza — es la señal correcta.
    */
-  async calculatePrice(
-    optionData: CalculateShippingOptionPriceDTO["optionData"],
-    data: CalculateShippingOptionPriceDTO["data"],
-    context: CalculateShippingOptionPriceDTO["context"]
-  ): Promise<CalculatedShippingOptionPrice> {
-    const carrier = optionData.id as EnviaCarrier
-    const address = context.shipping_address
-
-    if (!address?.city || !address?.province || !address?.postal_code) {
-      throw new Error("Dirección incompleta para cotizar envío")
-    }
-
-    const origin = this.buildOriginAddress()
-    const destination: EnviaAddress = {
-      name: `${address.first_name ?? ""} ${address.last_name ?? ""}`.trim() || "Cliente",
-      phone: address.phone ?? "",
-      street: [address.address_1, address.address_2].filter(Boolean).join(" ") || "N/A",
-      city: address.city,
-      state: resolveEnviaState(address.province),
-      country: address.country_code?.toUpperCase() ?? "CO",
-      postalCode: address.postal_code,
-    }
-
-    const packages = this.buildPackages(context.items ?? [])
-
-    const rates = await this.client_.rate({
-      origin,
-      destination,
-      packages,
-      carrier,
-    })
-
-    if (!rates.length) {
-      throw new Error(`Envia.com no devolvió tarifas para ${carrier} en esta ruta`)
-    }
-
-    // La opción más barata del carrier seleccionado. Si el checkout necesita
-    // mostrar varios servicios (ground/express) del mismo carrier, expón
-    // varias fulfillment options (una por servicio) en vez de una por carrier.
-    const cheapest = rates.reduce((min, r) =>
-      parseFloat(r.totalPrice) < parseFloat(min.totalPrice) ? r : min
-    )
-
-    return {
-      calculated_amount: parseFloat(cheapest.totalPrice),
-      is_calculated_price_tax_inclusive: true,
-    }
+  async canCalculate(_data: CreateShippingOptionDTO): Promise<boolean> {
+    return false
   }
 
   /**
    * Se ejecuta cuando el Admin marca la orden como "Create fulfillment".
    * Compra la guía real en Envia.com y devuelve tracking + PDF, que Medusa
-   * guarda nativamente en fulfillment.labels.
+   * guarda nativamente en fulfillment.labels. Usa SIEMPRE el peso/dimensiones
+   * por defecto (ENVIA_DEFAULT_*) — no calcula desde el carrito.
    */
   async createFulfillment(
     data: Record<string, unknown>,
@@ -186,7 +146,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
       postalCode: address.postal_code,
     }
 
-    const packages = this.buildPackagesFromFulfillmentItems(items)
+    const packages = this.buildDefaultPackages()
     const service = (data.service as string) ?? "ground"
 
     this.logger_.info(
@@ -207,6 +167,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
         envia_carrier: shipment.carrier,
         envia_service: shipment.service,
         envia_total_price: shipment.totalPrice,
+        envia_tracking_number: shipment.trackingNumber,
       },
       labels: [
         {
@@ -216,6 +177,37 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
         },
       ],
     }
+  }
+
+  /**
+   * Solicita recogida en la bodega de origen para uno o más tracking numbers
+   * del mismo carrier — se llama desde el endpoint admin
+   * POST /admin/envia/pickup, no automáticamente.
+   */
+  async requestPickup(params: {
+    carrier: EnviaCarrier
+    trackingNumbers: string[]
+    pickupDate: string // "YYYY-MM-DD"
+    pickupTimeStart: string // "HH:mm"
+    pickupTimeEnd: string // "HH:mm"
+  }) {
+    const o = this.options_.origin
+    return this.client_.pickup({
+      carrier: params.carrier,
+      pickupAddress: {
+        name: o.name,
+        phone: o.phone,
+        street: o.street,
+        city: o.city,
+        state: o.state,
+        country: o.country,
+        postalCode: o.postalCode,
+      },
+      pickupDate: params.pickupDate,
+      pickupTimeStart: params.pickupTimeStart,
+      pickupTimeEnd: params.pickupTimeEnd,
+      trackingNumbers: params.trackingNumbers,
+    })
   }
 
   async cancelFulfillment(data: Record<string, unknown>): Promise<any> {
@@ -253,68 +245,19 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
     }
   }
 
-  /**
-   * Construye UN package agregando peso/dimensiones de todos los items del
-   * carrito. Para EKIVIBES, cada variante (VH-ADU-S/M/L, MLV-ADU-*, etc.)
-   * debe tener weight/length/height/width cargados en Medusa — si faltan,
-   * usa un fallback conservador para no romper el checkout, pero esto debe
-   * corregirse en el catálogo antes de producción.
-   */
-  private buildPackages(
-    items: {
-      quantity: unknown // BigNumberValue en Medusa: number | string | BigNumber-like
-      variant?: { weight?: number; length?: number; height?: number; width?: number }
-    }[]
-  ): EnviaPackage[] {
-    let totalWeight = 0
-    let maxLength = 20
-    let maxWidth = 20
-    let totalHeight = 0
-    let totalValue = 0
-
-    for (const item of items) {
-      const qty = Number(item.quantity ?? 1)
-      const w = item.variant?.weight ?? 1000 // gramos, fallback conservador
-      totalWeight += (w / 1000) * qty // kg
-      maxLength = Math.max(maxLength, item.variant?.length ?? 30)
-      maxWidth = Math.max(maxWidth, item.variant?.width ?? 25)
-      totalHeight += (item.variant?.height ?? 10) * qty
-    }
-
+  /** Peso/dimensiones por defecto — configurables vía ENVIA_DEFAULT_* en Railway. */
+  private buildDefaultPackages(): EnviaPackage[] {
+    const p = this.options_.defaultPackage
     return [
       {
         type: "box",
         content: "Equipo ecuestre / airbag Hit-Air",
         amount: 1,
-        declaredValue: Math.max(totalValue, 50000), // COP — ajustar con el valor real del carrito
+        declaredValue: p.declaredValue,
         lengthUnit: "CM",
         weightUnit: "KG",
-        weight: Math.max(totalWeight, 0.5),
-        dimensions: { length: maxLength, width: maxWidth, height: Math.max(totalHeight, 10) },
-      },
-    ]
-  }
-
-  private buildPackagesFromFulfillmentItems(
-    items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[]
-  ): EnviaPackage[] {
-    // FulfillmentItemDTO no siempre expande variant.weight — si tu payload
-    // de creación de fulfillment no lo trae, considera resolverlo aquí vía
-    // el Product Module en vez de asumir un fallback.
-    let totalWeight = 0
-    for (const item of items) {
-      totalWeight += 0.5 * (item.quantity ?? 1) // TODO: reemplazar con peso real de variante
-    }
-    return [
-      {
-        type: "box",
-        content: "Equipo ecuestre / airbag Hit-Air",
-        amount: 1,
-        declaredValue: 50000,
-        lengthUnit: "CM",
-        weightUnit: "KG",
-        weight: Math.max(totalWeight, 0.5),
-        dimensions: { length: 30, width: 25, height: 15 },
+        weight: p.weightKg,
+        dimensions: { length: p.lengthCm, width: p.widthCm, height: p.heightCm },
       },
     ]
   }
