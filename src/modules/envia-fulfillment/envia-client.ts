@@ -170,7 +170,11 @@ export class EnviaClient {
     )
     const shipment = result.data?.[0]
     if (!shipment) {
-      throw new Error("Envia /ship/generate/ no devolvió ningún shipment")
+      throw new Error(
+        `Envia /ship/generate/ no devolvió ningún shipment. Respuesta cruda: ${JSON.stringify(
+          result
+        )}`
+      )
     }
     return shipment
   }
