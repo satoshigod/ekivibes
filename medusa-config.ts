@@ -76,6 +76,13 @@ module.exports = defineConfig({
                 postalCode: process.env.ENVIA_ORIGIN_POSTAL_CODE,
                 country: process.env.ENVIA_ORIGIN_COUNTRY || "CO",
               },
+              defaultPackage: {
+                weightKg: Number(process.env.ENVIA_DEFAULT_WEIGHT_KG || "1.5"),
+                lengthCm: Number(process.env.ENVIA_DEFAULT_LENGTH_CM || "30"),
+                widthCm: Number(process.env.ENVIA_DEFAULT_WIDTH_CM || "25"),
+                heightCm: Number(process.env.ENVIA_DEFAULT_HEIGHT_CM || "15"),
+                declaredValue: Number(process.env.ENVIA_DEFAULT_DECLARED_VALUE || "150000"),
+              },
             },
           },
         ],
