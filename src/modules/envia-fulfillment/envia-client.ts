@@ -86,6 +86,24 @@ export type EnviaClientOptions = {
   queriesBase: string // https://queries-test.envia.com | https://queries.envia.com
 }
 
+export type EnviaPickupRequest = {
+  carrier: string
+  pickupAddress: EnviaAddress
+  pickupDate: string // "YYYY-MM-DD"
+  pickupTimeStart: string // "HH:mm"
+  pickupTimeEnd: string // "HH:mm"
+  trackingNumbers: string[] // deben ser del mismo carrier y mismo origen
+}
+
+export type EnviaPickupResult = {
+  carrier: string
+  confirmation: string
+  status: string
+  date: string
+  timeFrom: number
+  timeTo: number
+}
+
 export class EnviaClient {
   private apiToken: string
   private shippingBase: string
@@ -173,6 +191,27 @@ export class EnviaClient {
       carrier,
       trackingNumber,
     })
+  }
+
+  /**
+   * POST /ship/pickup/ — payload verificado contra la Guía de Pickup &
+   * Manifest de Envia.com. Todos los trackingNumbers deben ser del mismo
+   * carrier y mismo origen.
+   */
+  async pickup(req: EnviaPickupRequest): Promise<EnviaPickupResult> {
+    const result = await this.request<{ meta: string; data: EnviaPickupResult }>(
+      this.shippingBase,
+      "/ship/pickup/",
+      {
+        carrier: req.carrier,
+        pickupAddress: req.pickupAddress,
+        pickupDate: req.pickupDate,
+        pickupTimeStart: req.pickupTimeStart,
+        pickupTimeEnd: req.pickupTimeEnd,
+        trackingNumbers: req.trackingNumbers,
+      }
+    )
+    return result.data
   }
 
   /** Registrar webhook de tracking en la Queries API (una vez, no por request) */
