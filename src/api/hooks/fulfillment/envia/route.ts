@@ -26,6 +26,11 @@ type EnviaWebhookPayload = {
   [key: string]: unknown
 }
 
+export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  // Envia.com usa GET para el botón "Probar" al registrar el webhook.
+  res.sendStatus(200)
+}
+
 export async function POST(req: MedusaRequest<EnviaWebhookPayload>, res: MedusaResponse) {
   try {
     const payload = req.body
