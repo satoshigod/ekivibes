@@ -140,6 +140,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
       name: `${address.first_name ?? ""} ${address.last_name ?? ""}`.trim() || "Cliente",
       phone: address.phone ?? "",
       street: [address.address_1, address.address_2].filter(Boolean).join(" ") || "N/A",
+      number: "S/N", // Medusa no captura un campo "número" separado en checkout
       city: address.city,
       state: resolveEnviaState(address.province),
       country: address.country_code?.toUpperCase() ?? "CO",
@@ -238,6 +239,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
       name: o.name,
       phone: o.phone,
       street: o.street,
+      number: process.env.ENVIA_ORIGIN_NUMBER || "S/N",
       city: o.city,
       state: o.state,
       country: o.country,
