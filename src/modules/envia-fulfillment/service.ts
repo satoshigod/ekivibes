@@ -1,5 +1,5 @@
-import { AbstractFulfillmentProviderService } from "@medusajs/framework/utils"
-import type { Logger } from "@medusajs/framework/types"
+import { AbstractFulfillmentProviderService, ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { Logger, Query } from "@medusajs/framework/types"
 import type {
   CreateFulfillmentResult,
   CreateShippingOptionDTO,
@@ -19,6 +19,7 @@ import { resolveEnviaState } from "./co-states-map"
 
 type InjectedDependencies = {
   logger: Logger
+  query: Query
 }
 
 export type EnviaFulfillmentOptions = {
@@ -58,13 +59,22 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
   static identifier = "envia-fulfillment"
 
   protected logger_: Logger
+  protected query_: Query
   protected options_: EnviaFulfillmentOptions
   protected client_: EnviaClient
 
-  constructor({ logger }: InjectedDependencies, options: EnviaFulfillmentOptions) {
+  constructor(cradle: InjectedDependencies, options: EnviaFulfillmentOptions) {
     super()
-    this.logger_ = logger
+    this.logger_ = cradle.logger
     this.options_ = options
+    // Acceso defensivo: si "query" no está disponible en el contenedor de
+    // este provider, no queremos que el servidor falle al arrancar — el
+    // método que lo usa ya tiene su propio fallback al snapshot de la orden.
+    try {
+      this.query_ = cradle.query
+    } catch {
+      this.query_ = undefined as unknown as Query
+    }
     this.client_ = new EnviaClient({
       apiToken: options.apiToken,
       shippingBase: options.shippingBase,
@@ -117,9 +127,8 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
   /**
    * Se ejecuta cuando el Admin marca la orden como "Create fulfillment".
    * Compra la guía real en Envia.com y devuelve tracking + PDF, que Medusa
-   * guarda nativamente en fulfillment.labels. Peso/dimensiones siempre usan
-   * el default (ENVIA_DEFAULT_*); el valor declarado se toma de
-   * order.item_total (ver buildDefaultPackages).
+   * guarda nativamente en fulfillment.labels. Usa SIEMPRE el peso/dimensiones
+   * por defecto (ENVIA_DEFAULT_*) — no calcula desde el carrito.
    */
   async createFulfillment(
     data: Record<string, unknown>,
@@ -127,7 +136,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
     order: Partial<FulfillmentOrderDTO> | undefined,
     fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
   ): Promise<CreateFulfillmentResult> {
-    const carrier = (data.id as EnviaCarrier) ?? this.inferCarrierFromShippingMethod(order)
+    const carrier = await this.inferCarrierFromShippingMethod(order, data)
     const address = order?.shipping_address
 
     if (!address?.city || !address?.province || !address?.postal_code) {
@@ -148,7 +157,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
       postalCode: address.postal_code,
     }
 
-    const packages = this.buildDefaultPackages(order)
+    const packages = this.buildDefaultPackages()
     const service = (data.service as string) ?? "ground"
 
     this.logger_.info(
@@ -248,34 +257,15 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
     }
   }
 
-  /**
-   * Peso/dimensiones por defecto — configurables vía ENVIA_DEFAULT_* en Railway.
-   * El valor DECLARADO (para seguro y liquidación de flete) ya NO es estático:
-   * se toma de `order.item_total`, que es el total nativo de Medusa calculado
-   * por el Pricing Module (la misma fuente que ve el cliente en el storefront
-   * y que cobra Wompi). ENVIA_DEFAULT_DECLARED_VALUE queda solo como piso de
-   * seguridad para el caso — no esperado en producción — de que el order no
-   * traiga totales resueltos.
-   */
-  private buildDefaultPackages(order?: Partial<FulfillmentOrderDTO>): EnviaPackage[] {
+  /** Peso/dimensiones por defecto — configurables vía ENVIA_DEFAULT_* en Railway. */
+  private buildDefaultPackages(): EnviaPackage[] {
     const p = this.options_.defaultPackage
-    const itemTotal = order?.item_total != null ? Number(order.item_total) : undefined
-    const declaredValue =
-      itemTotal && itemTotal > 0 ? Math.round(itemTotal) : p.declaredValue
-
-    if (!itemTotal) {
-      this.logger_.warn(
-        `[Envia] order ${order?.id ?? "desconocida"} sin item_total resuelto — ` +
-          `usando declaredValue de respaldo ($${p.declaredValue} COP). Revisar.`
-      )
-    }
-
     return [
       {
         type: "box",
         content: "Equipo ecuestre / airbag Hit-Air",
         amount: 1,
-        declaredValue,
+        declaredValue: p.declaredValue,
         lengthUnit: "CM",
         weightUnit: "KG",
         weight: p.weightKg,
@@ -284,14 +274,38 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
     ]
   }
 
-  private inferCarrierFromShippingMethod(
-    order: Partial<FulfillmentOrderDTO> | undefined
-  ): EnviaCarrier {
-    const method = order?.shipping_methods?.[0]
-    const carrier = (method?.data as Record<string, unknown> | undefined)?.id as
-      | EnviaCarrier
-      | undefined
-    return carrier ?? "servientrega"
+  private async inferCarrierFromShippingMethod(
+    order: Partial<FulfillmentOrderDTO> | undefined,
+    fallbackData?: Record<string, unknown>
+  ): Promise<EnviaCarrier> {
+    const method = order?.shipping_methods?.[0] as any
+    const shippingOptionId = method?.shipping_option_id
+
+    // Fuente de verdad: la shipping option EN VIVO, no la foto que quedó
+    // guardada en la orden al momento del checkout (puede quedar
+    // desactualizada si cambiamos el carrier después, como ya nos pasó).
+    if (shippingOptionId && this.query_) {
+      try {
+        const { data } = await this.query_.graph({
+          entity: "shipping_option",
+          fields: ["data"],
+          filters: { id: shippingOptionId },
+        })
+        const liveCarrier = (data[0]?.data as Record<string, unknown> | undefined)?.id as
+          | EnviaCarrier
+          | undefined
+        if (liveCarrier) return liveCarrier
+      } catch (err) {
+        this.logger_.warn(
+          `[Envia] No se pudo leer la shipping option en vivo (${shippingOptionId}), usando snapshot`
+        )
+      }
+    }
+
+    const snapshotCarrier =
+      ((method?.data as Record<string, unknown> | undefined)?.id as EnviaCarrier | undefined) ??
+      (fallbackData?.id as EnviaCarrier | undefined)
+    return snapshotCarrier ?? "servientrega"
   }
 }
 
