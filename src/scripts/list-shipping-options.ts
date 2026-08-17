@@ -1,6 +1,7 @@
 /**
  * src/scripts/list-shipping-options.ts
  * EJECUCIÓN: npx medusa exec ./src/scripts/list-shipping-options.ts
+ * (trigger redeploy)
  */
 import { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
