@@ -18,7 +18,7 @@ export default async function diagnoseOrderShipping({ container }: ExecArgs) {
   const { data: orders } = await query.graph({
     entity: "order",
     fields: ["id", "display_id", "shipping_methods.id", "shipping_methods.shipping_option_id", "shipping_methods.data"],
-    filters: { display_id: Number(displayId) },
+    filters: { display_id: displayId },
   })
 
   const order = orders[0] as any
