@@ -36,7 +36,7 @@ import { updateShippingOptionsWorkflow, deleteShippingOptionsWorkflow } from "@m
 
 const ENVIA_OPTION_ID = "so_01M00EAK49Y401P99BX4TK83ZV" // "Envío estándar" — provider real Envía
 const MANUAL_OPTION_ID = "so_01KZPDT8A6W7ETYMJZNF5PVDY6" // "Envio Nacional" — provider manual, a eliminar
-const FREE_SHIPPING_THRESHOLD = "250000"
+const FREE_SHIPPING_THRESHOLD = 250000
 
 export default async function fixShippingOptionDuplication({ container }: ExecArgs) {
   const DRY_RUN = process.env.DRY_RUN !== "false"
