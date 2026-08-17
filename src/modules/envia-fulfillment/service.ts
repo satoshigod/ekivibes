@@ -117,8 +117,9 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
   /**
    * Se ejecuta cuando el Admin marca la orden como "Create fulfillment".
    * Compra la guía real en Envia.com y devuelve tracking + PDF, que Medusa
-   * guarda nativamente en fulfillment.labels. Usa SIEMPRE el peso/dimensiones
-   * por defecto (ENVIA_DEFAULT_*) — no calcula desde el carrito.
+   * guarda nativamente en fulfillment.labels. Peso/dimensiones siempre usan
+   * el default (ENVIA_DEFAULT_*); el valor declarado se toma de
+   * order.item_total (ver buildDefaultPackages).
    */
   async createFulfillment(
     data: Record<string, unknown>,
@@ -147,7 +148,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
       postalCode: address.postal_code,
     }
 
-    const packages = this.buildDefaultPackages()
+    const packages = this.buildDefaultPackages(order)
     const service = (data.service as string) ?? "ground"
 
     this.logger_.info(
@@ -247,15 +248,34 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
     }
   }
 
-  /** Peso/dimensiones por defecto — configurables vía ENVIA_DEFAULT_* en Railway. */
-  private buildDefaultPackages(): EnviaPackage[] {
+  /**
+   * Peso/dimensiones por defecto — configurables vía ENVIA_DEFAULT_* en Railway.
+   * El valor DECLARADO (para seguro y liquidación de flete) ya NO es estático:
+   * se toma de `order.item_total`, que es el total nativo de Medusa calculado
+   * por el Pricing Module (la misma fuente que ve el cliente en el storefront
+   * y que cobra Wompi). ENVIA_DEFAULT_DECLARED_VALUE queda solo como piso de
+   * seguridad para el caso — no esperado en producción — de que el order no
+   * traiga totales resueltos.
+   */
+  private buildDefaultPackages(order?: Partial<FulfillmentOrderDTO>): EnviaPackage[] {
     const p = this.options_.defaultPackage
+    const itemTotal = order?.item_total != null ? Number(order.item_total) : undefined
+    const declaredValue =
+      itemTotal && itemTotal > 0 ? Math.round(itemTotal) : p.declaredValue
+
+    if (!itemTotal) {
+      this.logger_.warn(
+        `[Envia] order ${order?.id ?? "desconocida"} sin item_total resuelto — ` +
+          `usando declaredValue de respaldo ($${p.declaredValue} COP). Revisar.`
+      )
+    }
+
     return [
       {
         type: "box",
         content: "Equipo ecuestre / airbag Hit-Air",
         amount: 1,
-        declaredValue: p.declaredValue,
+        declaredValue,
         lengthUnit: "CM",
         weightUnit: "KG",
         weight: p.weightKg,
