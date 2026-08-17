@@ -21,7 +21,7 @@ export default async function fixShippingOptionCarrier({ container }: ExecArgs) 
   logger.info(`Antes: data=${JSON.stringify((before as any).data)}`)
 
   const updated = await fulfillmentModuleService.updateShippingOptions(SHIPPING_OPTION_ID, {
-    data: { id: NEW_CARRIER },
+    data: { id: NEW_CARRIER, name: "Inter Rapidísimo", is_return: false },
   })
 
   logger.info(`Después: data=${JSON.stringify((updated as any).data)}`)
