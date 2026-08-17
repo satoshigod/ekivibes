@@ -24,12 +24,13 @@ export default async function listShippingOptions({ container }: ExecArgs) {
   })
 
   logger.info("=".repeat(70))
-  for (const opt of options) {
+  for (const optRaw of options) {
+    const opt = optRaw as any
     logger.info(
       `"${opt.name}" (id=${opt.id})\n` +
         `  provider_id: ${opt.provider_id}\n` +
         `  price_type: ${opt.price_type}\n` +
-        `  service_zone: ${(opt as any).service_zone?.name}\n` +
+        `  service_zone: ${opt.service_zone?.name}\n` +
         `  prices: ${JSON.stringify(opt.prices)}`
     )
     logger.info("-".repeat(70))
