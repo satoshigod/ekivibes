@@ -97,7 +97,7 @@ export default async function seedHitAirColombia({ container }: ExecArgs) {
     fields: ["id", "title", "token", "type"],
     filters: { title: "Hit-Air Colombia Storefront", type: "publishable" },
   });
-  let hitairKey = existingKeys[0];
+  let hitairKey: { id: string; token: string } | undefined = existingKeys[0];
   if (!hitairKey) {
     const { result: keyResult } = await createApiKeysWorkflow(container).run({
       input: {
