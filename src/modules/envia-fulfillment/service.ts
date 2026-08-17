@@ -306,7 +306,7 @@ class EnviaFulfillmentProviderService extends AbstractFulfillmentProviderService
     const snapshotCarrier =
       ((method?.data as Record<string, unknown> | undefined)?.id as EnviaCarrier | undefined) ??
       (fallbackData?.id as EnviaCarrier | undefined)
-    return snapshotCarrier ?? "servientrega"
+    return snapshotCarrier ?? ((process.env.ENVIA_DEFAULT_CARRIER as EnviaCarrier) || "interrapidisimo")
   }
 }
 
