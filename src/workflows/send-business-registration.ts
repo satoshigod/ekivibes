@@ -3,7 +3,8 @@ import { sendNotificationStep } from "./steps/send-notification"
 
 type BusinessRegistrationInput = {
   store: "ekivibes" | "hitair-colombia"
-  companyName: string
+  requestType: "empresarial" | "distribuidor"
+  companyName?: string
   taxId?: string
   contactName: string
   contactRole?: string
@@ -11,7 +12,7 @@ type BusinessRegistrationInput = {
   phone: string
   city: string
   department?: string
-  businessType: string
+  businessType?: string
   estimatedVolume?: string
   message?: string
   adminEmail: string
