@@ -41,9 +41,9 @@ const subjectBuilders: Record<string, (data: any) => string> = {
   [Templates.ORDER_DELIVERED]: (data: any) =>
     `Tu pedido #${data?.order?.display_id ?? ""} fue entregado - Ekivibes`,
   [Templates.BUSINESS_REGISTRATION_ADMIN]: (data: any) =>
-    `Nueva solicitud empresarial (${
+    `${data?.requestType === "distribuidor" ? "Nueva solicitud de distribuidor" : "Nueva solicitud empresarial"} (${
       data?.store === "hitair-colombia" ? "Hit-Air Colombia" : "Ekivibes"
-    }) - ${data?.companyName ?? ""}`,
+    }) - ${data?.companyName || data?.contactName || ""}`,
   [Templates.BUSINESS_REGISTRATION_CONFIRMATION]: (data: any) =>
     `Recibimos tu solicitud - ${
       data?.store === "hitair-colombia" ? "Hit-Air Colombia" : "Ekivibes"
