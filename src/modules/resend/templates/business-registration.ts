@@ -1,6 +1,7 @@
 type BusinessRegistrationData = {
   store: "ekivibes" | "hitair-colombia"
-  companyName: string
+  requestType?: "empresarial" | "distribuidor"
+  companyName?: string
   taxId?: string
   contactName: string
   contactRole?: string
@@ -8,7 +9,7 @@ type BusinessRegistrationData = {
   phone: string
   city: string
   department?: string
-  businessType: string
+  businessType?: string
   estimatedVolume?: string
   message?: string
 }
@@ -49,6 +50,7 @@ function row(label: string, value?: string) {
 
 export function businessRegistrationAdminHtml(data: BusinessRegistrationData): string {
   const meta = STORE_META[data.store] || STORE_META.ekivibes
+  const isDistributor = data.requestType === "distribuidor"
 
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
@@ -56,14 +58,18 @@ export function businessRegistrationAdminHtml(data: BusinessRegistrationData): s
       <span style="color:#ffffff;font-size:20px;font-weight:bold;letter-spacing:2px;">${meta.label.toUpperCase()}</span>
     </div>
     <div style="padding:32px 24px 8px 24px;">
-      <h1 style="color:#1a1a1a;font-size:20px;margin:0 0 8px 0;">Nueva solicitud de cliente empresarial</h1>
+      <h1 style="color:#1a1a1a;font-size:20px;margin:0 0 8px 0;">
+        ${isDistributor ? "Nueva solicitud para ser distribuidor" : "Nueva solicitud de cliente empresarial"}
+      </h1>
       <p style="color:#555;font-size:14px;line-height:1.5;margin:0;">
-        ${escapeHtml(data.companyName)} quiere registrarse como cliente empresarial en ${meta.label}.
+        ${escapeHtml(data.contactName)}${data.companyName ? ` (${escapeHtml(data.companyName)})` : ""}
+        ${isDistributor ? "quiere unirse a la red de distribuidores de" : "quiere registrarse como cliente empresarial en"} ${meta.label}.
       </p>
     </div>
     <div style="padding:16px 24px 24px 24px;">
       <table style="width:100%;border-collapse:collapse;">
-        ${row("Empresa / organización", data.companyName)}
+        ${row("Tipo de solicitud", isDistributor ? "Distribuidor / revendedor" : "Cliente empresarial")}
+        ${row("Empresa / negocio", data.companyName)}
         ${row("NIT / RUT", data.taxId)}
         ${row("Contacto", data.contactName)}
         ${row("Cargo", data.contactRole)}
@@ -96,11 +102,12 @@ export function businessRegistrationAdminHtml(data: BusinessRegistrationData): s
 
 export function businessRegistrationConfirmationHtml(data: BusinessRegistrationData): string {
   const meta = STORE_META[data.store] || STORE_META.ekivibes
+  const isDistributor = data.requestType === "distribuidor"
   const nombre = data.contactName?.split(" ")[0] || "hola"
 
   return `
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
-    Recibimos tu solicitud de registro empresarial en ${meta.label}.
+    Recibimos tu solicitud en ${meta.label}.
   </div>
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
     <div style="background:#1a1a1a;padding:28px 24px;text-align:center;border-top:3px solid ${meta.color};">
@@ -109,9 +116,13 @@ export function businessRegistrationConfirmationHtml(data: BusinessRegistrationD
     <div style="padding:32px 24px;">
       <h1 style="color:#1a1a1a;font-size:20px;margin:0 0 8px 0;">Recibimos tu solicitud</h1>
       <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 16px 0;">
-        Hola ${escapeHtml(nombre)}, gracias por registrar a <strong>${escapeHtml(data.companyName)}</strong> como
-        cliente empresarial de ${meta.label}. Nuestro equipo revisará tu solicitud y te contactará en
-        máximo 2 días hábiles al correo o teléfono que nos compartiste.
+        Hola ${escapeHtml(nombre)},
+        ${
+          isDistributor
+            ? `gracias por tu interés en ser distribuidor${data.companyName ? ` con <strong>${escapeHtml(data.companyName)}</strong>` : ""} de ${meta.label}. Nuestro equipo evaluará las condiciones y la zona disponible, y te contactará`
+            : `gracias por registrar a <strong>${escapeHtml(data.companyName || "tu empresa")}</strong> como cliente empresarial de ${meta.label}. Nuestro equipo revisará tu solicitud y te contactará`
+        }
+        en máximo 2 días hábiles al correo o teléfono que nos compartiste.
       </p>
       <p style="color:#555;font-size:14px;line-height:1.6;margin:0;">
         Si tu solicitud es urgente, también puedes escribirnos directamente a
