@@ -10,6 +10,7 @@ import { sendBusinessRegistrationWorkflow } from "../../../workflows/send-busine
  */
 type BusinessRegistrationBody = {
   store?: string
+  requestType?: string
   companyName?: string
   taxId?: string
   contactName?: string
@@ -40,6 +41,7 @@ export async function POST(req: MedusaRequest<BusinessRegistrationBody>, res: Me
   }
 
   const store = body.store === "hitair-colombia" ? "hitair-colombia" : "ekivibes"
+  const requestType = body.requestType === "distribuidor" ? "distribuidor" : "empresarial"
   const companyName = clean(body.companyName, 200)
   const contactName = clean(body.contactName, 150)
   const email = clean(body.email, 200)
@@ -47,9 +49,14 @@ export async function POST(req: MedusaRequest<BusinessRegistrationBody>, res: Me
   const city = clean(body.city, 100)
   const businessType = clean(body.businessType, 100)
 
-  if (!companyName || !contactName || !email || !phone || !city || !businessType) {
+  const missingCommon = !contactName || !email || !phone || !city
+  // El formulario "empresarial" exige empresa y tipo de negocio; el de
+  // "distribuidor" es más ligero, siguiendo el modelo de referencia.
+  const missingForType = requestType === "empresarial" && (!companyName || !businessType)
+
+  if (missingCommon || missingForType) {
     return res.status(400).json({
-      message: "Faltan campos obligatorios: empresa, contacto, correo, teléfono, ciudad y tipo de negocio.",
+      message: "Faltan campos obligatorios: nombre, correo, teléfono y ciudad.",
     })
   }
 
@@ -63,7 +70,8 @@ export async function POST(req: MedusaRequest<BusinessRegistrationBody>, res: Me
     await sendBusinessRegistrationWorkflow(req.scope).run({
       input: {
         store,
-        companyName,
+        requestType,
+        companyName: companyName || undefined,
         taxId: clean(body.taxId, 50),
         contactName,
         contactRole: clean(body.contactRole, 100),
@@ -71,7 +79,7 @@ export async function POST(req: MedusaRequest<BusinessRegistrationBody>, res: Me
         phone,
         city,
         department: clean(body.department, 100),
-        businessType,
+        businessType: businessType || undefined,
         estimatedVolume: clean(body.estimatedVolume, 100),
         message: clean(body.message, 2000),
         adminEmail,
