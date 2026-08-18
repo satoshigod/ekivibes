@@ -3,6 +3,10 @@ import { Logger } from "@medusajs/framework/types"
 import { Resend } from "resend"
 import { orderPlacedHtml } from "./templates/order-placed"
 import { orderStatusHtml } from "./templates/order-status"
+import {
+  businessRegistrationAdminHtml,
+  businessRegistrationConfirmationHtml,
+} from "./templates/business-registration"
 
 type ResendOptions = {
   api_key: string
@@ -14,6 +18,8 @@ enum Templates {
   ORDER_FULFILLED = "order-fulfilled",
   ORDER_SHIPPED = "order-shipped",
   ORDER_DELIVERED = "order-delivered",
+  BUSINESS_REGISTRATION_ADMIN = "business-registration-admin",
+  BUSINESS_REGISTRATION_CONFIRMATION = "business-registration-confirmation",
 }
 
 const templates: Record<string, (data: any) => string> = {
@@ -21,6 +27,8 @@ const templates: Record<string, (data: any) => string> = {
   [Templates.ORDER_FULFILLED]: (data: any) => orderStatusHtml({ ...data, stage: "fulfilled" }),
   [Templates.ORDER_SHIPPED]: (data: any) => orderStatusHtml({ ...data, stage: "shipped" }),
   [Templates.ORDER_DELIVERED]: (data: any) => orderStatusHtml({ ...data, stage: "delivered" }),
+  [Templates.BUSINESS_REGISTRATION_ADMIN]: businessRegistrationAdminHtml,
+  [Templates.BUSINESS_REGISTRATION_CONFIRMATION]: businessRegistrationConfirmationHtml,
 }
 
 const subjectBuilders: Record<string, (data: any) => string> = {
@@ -32,6 +40,14 @@ const subjectBuilders: Record<string, (data: any) => string> = {
     `Tu pedido #${data?.order?.display_id ?? ""} va en camino - Ekivibes`,
   [Templates.ORDER_DELIVERED]: (data: any) =>
     `Tu pedido #${data?.order?.display_id ?? ""} fue entregado - Ekivibes`,
+  [Templates.BUSINESS_REGISTRATION_ADMIN]: (data: any) =>
+    `Nueva solicitud empresarial (${
+      data?.store === "hitair-colombia" ? "Hit-Air Colombia" : "Ekivibes"
+    }) - ${data?.companyName ?? ""}`,
+  [Templates.BUSINESS_REGISTRATION_CONFIRMATION]: (data: any) =>
+    `Recibimos tu solicitud - ${
+      data?.store === "hitair-colombia" ? "Hit-Air Colombia" : "Ekivibes"
+    }`,
 }
 
 type InjectedDependencies = { logger: Logger }
