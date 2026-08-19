@@ -18,8 +18,8 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 export default async function auditDbSize({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const manager: any = container.resolve(ContainerRegistrationKeys.MANAGER)
-  const knex = manager.getKnex ? manager.getKnex() : manager.connection
+  // PG_CONNECTION es el knex directo; "manager" no existe en Medusa v2.
+  const knex: any = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
 
   const sql = async (q: string) => {
     const res = await knex.raw(q)
