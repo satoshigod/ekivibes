@@ -133,9 +133,16 @@ export default async function auditSalesChannels({ container }: ExecArgs) {
       }
     }
     const seg = segmento(skus)
-    if (seg.startsWith("MEZCLADO")) {
+    // Un canal sin llave publicable es interno (venta directa, mostrador):
+    // ahi mezclar marcas es lo correcto. La regla aplica a tiendas web.
+    const esInterno = !(llaves as any[]).some((k) =>
+      (k.sales_channels || []).some((sc: any) => sc.id === c.id)
+    )
+    if (seg.startsWith("MEZCLADO") && !esInterno) {
       logger.error(`  "${c.name}" MEZCLA moto y equitacion: ${seg}`)
       hallazgos++
+    } else if (seg.startsWith("MEZCLADO")) {
+      logger.info(`  "${c.name}" mezcla marcas, pero es canal interno sin llave: correcto.`)
     }
     const conLlave = (llaves as any[]).some((k) =>
       (k.sales_channels || []).some((sc: any) => sc.id === c.id)
