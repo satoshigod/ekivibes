@@ -10,6 +10,12 @@
  * Se reescribe el titulo como "<producto> - <variante>", quitando de paso
  * espacios y tabuladores sobrantes (MLV-ADU-L trae un tab del seed original).
  *
+ * Los titulos se normalizan a ASCII: sin tildes ni enes. El titulo de
+ * inventory item es interno (Admin, exports CSV, integraciones de bodega y
+ * transportadora) y los caracteres no ASCII se corrompen al pasar entre
+ * sistemas. Los acentos se conservan donde importan: en el titulo del
+ * PRODUCTO, que es lo que lee el cliente en la tienda.
+ *
  * NO toca el titulo del producto ni el de la variante: solo el del inventory
  * item, que es interno de Admin y no se muestra en la tienda.
  *
@@ -23,8 +29,19 @@
 import { ExecArgs, IInventoryService } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
+/** Quita tildes y enes: el titulo de inventory item es interno (Admin, exports,
+ *  integraciones). Los acentos se conservan solo en el titulo del PRODUCTO,
+ *  que es lo que ve el cliente en la tienda. */
+function ascii(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ñ/g, "n")
+    .replace(/Ñ/g, "N")
+}
+
 function limpiar(s: string): string {
-  return s.replace(/\s+/g, " ").trim()
+  return ascii(s).replace(/\s+/g, " ").trim()
 }
 
 export default async function fixInventoryTitles({ container }: ExecArgs) {
