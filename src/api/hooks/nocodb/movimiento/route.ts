@@ -115,6 +115,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       return
     }
 
+    // Guardia de completitud: NocoDB dispara el webhook en el insert, antes de
+    // que se hayan establecido los enlaces a producto y almacen (y enlazar no
+    // cuenta como update, asi que no habria reintento). El movimiento solo se
+    // asienta cuando el usuario lo marca como confirmado, con todo ya cargado.
+    if (!(mov.confirmado === true || mov.confirmado === 1)) {
+      console.log(`${LOG} mov ${movimientoId} aun sin confirmar, se omite`)
+      res.status(200).json({ ok: true, aplicado: false, razon: "no confirmado" })
+      return
+    }
+
     const cantidad = Number(mov.cantidad)
     if (!Number.isFinite(cantidad) || cantidad === 0) {
       res.status(200).json({ ok: true, aplicado: false, razon: "cantidad nula" })
