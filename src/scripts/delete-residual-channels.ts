@@ -10,7 +10,12 @@
  *   1. No tenga productos enlazados.
  *   2. No tenga ninguna llave publicable (ningun storefront lo consume).
  *   3. No tenga pedidos asociados.
+ *   4. No sea el default_sales_channel_id de la tienda. Medusa protege ese
+ *      canal a nivel de nucleo y lanza error; "Default Sales Channel" lo es.
  * Si alguna verificacion falla, ese canal se omite y se reporta el motivo.
+ *
+ * Cada canal se elimina en su propia llamada: agrupados en una sola, el
+ * rechazo de uno tumba la transaccion y no se borra ninguno.
  *
  * Lo que NO se toca: productos, precios, Wompi, opciones de envio, Envia.com,
  * inventario ni los dos canales en uso. Eliminar un canal vacio solo remueve
@@ -43,6 +48,20 @@ export default async function deleteResidualChannels({ container }: ExecArgs) {
     entity: "sales_channel",
     fields: ["id", "name"],
   })
+
+  // Canal por defecto de la tienda: Medusa impide borrarlo.
+  let defaultIds: string[] = []
+  try {
+    const { data: stores } = await query.graph({
+      entity: "store",
+      fields: ["id", "name", "default_sales_channel_id"],
+    })
+    defaultIds = (stores as any[])
+      .map((st) => st.default_sales_channel_id)
+      .filter(Boolean)
+  } catch {
+    logger.warn("  No se pudo leer la tienda; se omite la verificacion de canal por defecto.")
+  }
   const { data: llaves } = await query.graph({
     entity: "api_key",
     fields: ["id", "title", "sales_channels.id"],
@@ -96,6 +115,12 @@ export default async function deleteResidualChannels({ container }: ExecArgs) {
     if (conPedidos.length) {
       motivos.push(`tiene ${conPedidos.length} pedidos`)
     }
+    if (defaultIds.includes(c.id)) {
+      motivos.push(
+        "es el canal por defecto de la tienda (Medusa no permite borrarlo; " +
+          "para eliminarlo habria que asignar otro como default en Settings > Store)"
+      )
+    }
 
     if (motivos.length) {
       logger.warn(`    -> NO se elimina: ${motivos.join("; ")}`)
@@ -121,9 +146,18 @@ export default async function deleteResidualChannels({ container }: ExecArgs) {
     return
   }
 
-  await deleteSalesChannelsWorkflow(container).run({
-    input: { ids: borrar.map((b) => b.id) },
-  })
-  logger.info(`${borrar.length} canales eliminados: ${borrar.map((b) => b.name).join(", ")}`)
+  // Uno por uno: si uno falla, los demas igual se procesan.
+  let ok = 0
+  for (const b of borrar) {
+    try {
+      await deleteSalesChannelsWorkflow(container).run({ input: { ids: [b.id] } })
+      logger.info(`  eliminado: ${b.name}`)
+      ok++
+    } catch (err: any) {
+      logger.error(`  fallo "${b.name}": ${err?.message}`)
+    }
+  }
+  logger.info("")
+  logger.info(`${ok} de ${borrar.length} canales eliminados.`)
   logger.info("Verifica con: npx medusa exec ./src/scripts/audit-sales-channels.ts")
 }
