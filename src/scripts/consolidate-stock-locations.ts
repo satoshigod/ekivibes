@@ -118,8 +118,13 @@ export default async function consolidate({ container, args }: ExecArgs) {
   })
 
   const crear: any[] = []
-  const ajustar: { id: string; sku: string; de: number }[] = []
-  const borrar: { id: string; sku: string }[] = []
+  const ajustar: {
+    id: string
+    sku: string
+    de: number
+    inventory_item_id: string
+  }[] = []
+  const borrar: { id: string; sku: string; inventory_item_id: string }[] = []
 
   for (const it of items as any[]) {
     const niveles = it.location_levels || []
@@ -137,10 +142,11 @@ export default async function consolidate({ container, args }: ExecArgs) {
         id: enConservar.id,
         sku: it.sku,
         de: Number(enConservar.stocked_quantity),
+        inventory_item_id: it.id,
       })
     }
     if (enRetirar) {
-      borrar.push({ id: enRetirar.id, sku: it.sku })
+      borrar.push({ id: enRetirar.id, sku: it.sku, inventory_item_id: it.id })
     }
   }
 
@@ -163,11 +169,14 @@ export default async function consolidate({ container, args }: ExecArgs) {
     logger.info(`  ${a.sku}: ${a.de} -> ${CANTIDAD_OBJETIVO}`)
   }
   if (ajustar.length && APPLY) {
-    for (const a of ajustar) {
-      await inventory.updateInventoryLevels([
-        { id: a.id, stocked_quantity: CANTIDAD_OBJETIVO } as any,
-      ])
-    }
+    await inventory.updateInventoryLevels(
+      ajustar.map((a) => ({
+        id: a.id,
+        inventory_item_id: a.inventory_item_id,
+        location_id: CONSERVAR,
+        stocked_quantity: CANTIDAD_OBJETIVO,
+      }))
+    )
     logger.info(`  ${ajustar.length} niveles ajustados`)
   }
 
@@ -178,11 +187,15 @@ export default async function consolidate({ container, args }: ExecArgs) {
     logger.info(`  ${b.sku}`)
   }
   if (borrar.length && APPLY) {
-    for (const b of borrar) {
-      await inventory.updateInventoryLevels([
-        { id: b.id, stocked_quantity: 0 } as any,
-      ])
-    }
+    // Medusa se niega a borrar un nivel con stock: primero se pone en cero.
+    await inventory.updateInventoryLevels(
+      borrar.map((b) => ({
+        id: b.id,
+        inventory_item_id: b.inventory_item_id,
+        location_id: RETIRAR,
+        stocked_quantity: 0,
+      }))
+    )
     await inventory.deleteInventoryLevels(borrar.map((b) => b.id))
     logger.info(`  ${borrar.length} niveles eliminados`)
   }
