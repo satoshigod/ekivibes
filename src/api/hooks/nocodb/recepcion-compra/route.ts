@@ -113,9 +113,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
 
     // Idempotencia: si ya hay movimientos de esta compra, no se repite.
+    // Se filtra por la clave foranea compras_id, no por el campo de enlace
+    // "compra": filtrar por el link devuelve cero resultados en silencio.
     const yaHay = await nocodb(
       `/api/v2/tables/${T_MOVIMIENTOS}/records?where=` +
-        encodeURIComponent(`(compra,eq,${compraId})`) +
+        encodeURIComponent(`(compras_id,eq,${compraId})`) +
         `&limit=1`
     )
     if ((yaHay.list || []).length) {
@@ -126,7 +128,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const lineas = await nocodb(
       `/api/v2/tables/${T_LINEAS}/records?where=` +
-        encodeURIComponent(`(compra,eq,${compraId})`) +
+        encodeURIComponent(`(compras_id,eq,${compraId})`) +
         `&limit=200`
     )
     const filas = lineas.list || []
