@@ -102,6 +102,22 @@ export default async function fixWalSize({ container }: ExecArgs) {
   `)
   logger.info(`  WAL ahora: ${walDespues[0].n} archivos, ${walDespues[0].tam}`)
 
+  // Verificacion real: el ALTER SYSTEM puede ejecutarse sin error y aun asi
+  // no aplicar, si postgresql.conf fija el valor con mayor precedencia.
+  const aplicado = despues.find((c: any) => c.name === "max_wal_size")
+  const valorMB = Number(aplicado?.setting || 0)
+  if (valorMB > 256) {
+    logger.error("")
+    logger.error(
+      `NO SE APLICO: max_wal_size sigue en ${valorMB} MB (origen: ${aplicado?.source}).`
+    )
+    logger.error(
+      "postgresql.conf tiene precedencia sobre ALTER SYSTEM en esta instancia. " +
+        "Corre diag-wal-config.ts para ver que archivo lo fija."
+    )
+    return
+  }
+
   logger.info("")
   logger.info("Listo. Postgres ya no puede inflar el WAL por encima de 256 MB.")
   logger.info(
