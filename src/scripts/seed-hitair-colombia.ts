@@ -38,7 +38,11 @@ import {
 
 // ID confirmado de Bodega Principal (memoria del proyecto) — misma bodega
 // física de Ekivibes, solo se le agregan niveles de inventario nuevos.
-const BODEGA_PRINCIPAL_ID = "sloc_01KZPAFBNMW4WBK5VRZQA5G1C2";
+// Se resuelve por nombre, NO por id fijo: el id anterior apuntaba a
+// "BODEGA MEDELLIN", que quedo vaciada y desconectada al consolidar las
+// ubicaciones. Un id hardcodeado reintroduce el stock fantasma y enlaza el
+// canal a una bodega sin opciones de envio, dejando el checkout sin metodo.
+const BODEGA_NOMBRE = "Bodega Principal";
 
 // PVP en COP (pesos enteros), calculado sobre Costo NETO dado por Ivan:
 // PVP = Costo NETO x 2.2 (margen retail ~55% sobre precio distribuidor,
@@ -119,8 +123,24 @@ export default async function seedHitAirColombia({ container }: ExecArgs) {
 
   // 3. Vincular Bodega Principal al nuevo canal (NO se toca ni se remueve
   // su vínculo existente con el canal de Ekivibes — solo se le AGREGA este).
+  // La ubicación se resuelve por nombre para no depender de un id fijo que
+  // pueda quedar apuntando a una bodega retirada.
+  const { data: bodegas } = await query.graph({
+    entity: "stock_location",
+    fields: ["id", "name"],
+    filters: { name: BODEGA_NOMBRE },
+  });
+  if (!bodegas.length) {
+    throw new Error(
+      `No existe la stock location "${BODEGA_NOMBRE}". ` +
+        `Revisa el nombre en Admin > Settings > Locations antes de re-ejecutar.`
+    );
+  }
+  const bodegaId = bodegas[0].id as string;
+  logger.info(`Bodega destino: ${BODEGA_NOMBRE} [${bodegaId}]`);
+
   await linkSalesChannelsToStockLocationWorkflow(container).run({
-    input: { id: BODEGA_PRINCIPAL_ID, add: [hitairChannel.id] },
+    input: { id: bodegaId, add: [hitairChannel.id] },
   });
 
   // 4. Shipping profile (reutiliza el mismo que usa Ekivibes, sin modificarlo)
@@ -284,6 +304,41 @@ export default async function seedHitAirColombia({ container }: ExecArgs) {
   await createProductsWorkflow(container).run({ input: { products } });
   logger.info("Productos creados.");
 
+  // 6b. Titulo legible del inventory item.
+  // Medusa hereda el titulo de la variante, de modo que en Admin > Inventory
+  // los SKU aparecen como "M" o "Negro / M" y quien despacha no sabe que
+  // producto es. Se reescribe como "<producto> - <variante>", en ASCII porque
+  // este titulo viaja a exports y a integraciones de bodega.
+  const ascii = (t: string) =>
+    t.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/ñ/g, "n").replace(/Ñ/g, "N")
+      .replace(/\s+/g, " ").trim();
+
+  const { data: itemsParaTitulo } = await query.graph({
+    entity: "inventory_item",
+    fields: ["id", "sku", "variants.title", "variants.product.title"],
+    filters: { sku: Object.keys(QUANTITIES) },
+  });
+
+  const titulos = (itemsParaTitulo as any[])
+    .map((it) => {
+      const v = (it.variants || [])[0];
+      if (!v?.product?.title) return null;
+      const prod = ascii(v.product.title);
+      const varia = ascii(v.title || "");
+      return {
+        id: it.id,
+        title: !varia || /^default variant$/i.test(varia) ? prod : `${prod} - ${varia}`,
+      };
+    })
+    .filter(Boolean) as { id: string; title: string }[];
+
+  if (titulos.length) {
+    const inventoryService = container.resolve(Modules.INVENTORY);
+    await inventoryService.updateInventoryItems(titulos);
+    logger.info(`Titulos de inventory item normalizados: ${titulos.length}`);
+  }
+
   // 7. Inventario: SOLO para los SKUs de esta lista, en Bodega Principal.
   // No toca ningún InventoryItem existente de Ekivibes/equitación.
   logger.info("Asignando inventario en Bodega Principal...");
@@ -296,7 +351,7 @@ export default async function seedHitAirColombia({ container }: ExecArgs) {
 
   const inventoryLevels: CreateInventoryLevelInput[] = inventoryItems.map((item) => ({
     inventory_item_id: item.id,
-    location_id: BODEGA_PRINCIPAL_ID,
+    location_id: bodegaId,
     stocked_quantity: QUANTITIES[item.sku as string] ?? 0,
   }));
 
