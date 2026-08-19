@@ -27,9 +27,13 @@
  * La ubicacion vacia NO se elimina: queda inerte y sin canales. Borrarla
  * arrastraria su fulfillment set y no aporta nada hacerlo ahora.
  *
+ * Sigue la convencion del repo: se controla con la variable DRY_RUN.
+ *   - DRY_RUN=true (default): solo imprime lo que haria. No escribe nada.
+ *   - DRY_RUN=false: aplica los cambios reales.
+ *
  * Uso, desde /app en el contenedor de Railway:
- *   npx medusa exec ./src/scripts/consolidate-stock-locations.ts          (simulacion)
- *   npx medusa exec ./src/scripts/consolidate-stock-locations.ts -- --apply
+ *   DRY_RUN=true  npx medusa exec ./src/scripts/consolidate-stock-locations.ts
+ *   DRY_RUN=false npx medusa exec ./src/scripts/consolidate-stock-locations.ts
  */
 
 import { ExecArgs, IInventoryService } from "@medusajs/framework/types"
@@ -43,13 +47,16 @@ const CONSERVAR = "sloc_01KZXNX7PWYTJZE1KVASB4B76M" // Bodega Principal
 const RETIRAR = "sloc_01KZPAFBNMW4WBK5VRZQA5G1C2" // BODEGA MEDELLIN
 const CANTIDAD_OBJETIVO = 10
 
-export default async function consolidate({ container, args }: ExecArgs) {
+export default async function consolidate({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const inventory: IInventoryService = container.resolve(Modules.INVENTORY)
 
-  const APPLY = (args || []).includes("--apply")
-  const modo = APPLY ? "APLICANDO CAMBIOS" : "SIMULACION (usa -- --apply para ejecutar)"
+  const DRY_RUN = process.env.DRY_RUN !== "false"
+  const APPLY = !DRY_RUN
+  const modo = APPLY
+    ? "APLICACION REAL"
+    : "DRY_RUN (simulacion, usa DRY_RUN=false para ejecutar)"
   logger.info("")
   logger.info(`=== CONSOLIDACION DE UBICACIONES — ${modo} ===`)
 
@@ -222,7 +229,7 @@ export default async function consolidate({ container, args }: ExecArgs) {
   } else {
     logger.info("Simulacion terminada. Nada fue modificado.")
     logger.info(
-      "Para ejecutar: npx medusa exec ./src/scripts/consolidate-stock-locations.ts -- --apply"
+      "Para ejecutar: DRY_RUN=false npx medusa exec ./src/scripts/consolidate-stock-locations.ts"
     )
   }
 }
