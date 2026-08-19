@@ -25,7 +25,10 @@
 
 import { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { deleteApiKeysWorkflow } from "@medusajs/medusa/core-flows"
+import {
+  deleteApiKeysWorkflow,
+  revokeApiKeysWorkflow,
+} from "@medusajs/medusa/core-flows"
 
 export default async function deleteUnusedApiKey({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
@@ -95,6 +98,17 @@ export default async function deleteUnusedApiKey({ container }: ExecArgs) {
     logger.info("[simulacion] se eliminaria esta llave. Nada fue modificado.")
     logger.info("Confirma primero que NINGUN storefront la tenga configurada.")
     return
+  }
+
+  // Medusa exige revocar antes de borrar: revocar la desactiva de inmediato
+  // (deja de autenticar aunque siga existiendo) y recien ahi permite el
+  // delete. Es una proteccion de dos pasos, no un tramite.
+  if (!k.revoked_at) {
+    logger.info("  La llave no estaba revocada; revocando primero...")
+    await revokeApiKeysWorkflow(container).run({
+      input: { selector: { id: k.id }, revoke: { revoked_by: "script" } },
+    })
+    logger.info("  Revocada.")
   }
 
   await deleteApiKeysWorkflow(container).run({ input: { ids: [k.id] } })
