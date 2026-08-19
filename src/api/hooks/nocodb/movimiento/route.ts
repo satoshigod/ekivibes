@@ -13,6 +13,15 @@
  *    medusa_location_id ni la bandera de sincronizacion.
  *  - Reconsultar evita depender de plantillas handlebars fragiles.
  *
+ * BARRIDO DE PENDIENTES:
+ *  - La plantilla del webhook de NocoDB solo manda la PRIMERA fila de la
+ *    operacion ({{ data.data.rows.0.Id }}). Si alguien confirma varios
+ *    movimientos a la vez, los demas nunca llegarian y el stock quedaria
+ *    corto en silencio.
+ *  - Por eso, ademas del movimiento avisado, se procesan todos los que esten
+ *    confirmados y sin empujar. Eso cubre ediciones en lote, webhooks
+ *    perdidos por un redespliegue y reintentos manuales.
+ *
  * IDEMPOTENCIA:
  *  - Solo actua si el movimiento tiene empujado_a_medusa = false.
  *  - Al terminar lo marca en true. Si NocoDB reintenta o el hook dispara de
@@ -84,6 +93,120 @@ function extraerId(body: any): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
+type Resultado = {
+  movimiento_id: number
+  aplicado: boolean
+  sku?: string
+  delta?: number
+  stocked_quantity?: number
+  razon?: string
+  error?: string
+}
+
+/** Procesa un movimiento. No lanza: devuelve el resultado para poder seguir. */
+async function procesarMovimiento(
+  movimientoId: number,
+  scope: MedusaRequest["scope"]
+): Promise<Resultado> {
+  try {
+    const mov = await nocodb(
+      `/api/v2/tables/${T_MOVIMIENTOS}/records/${movimientoId}`
+    )
+
+    if (mov.empujado_a_medusa === true || mov.empujado_a_medusa === 1) {
+      return { movimiento_id: movimientoId, aplicado: false, razon: "ya sincronizado" }
+    }
+    if (!(mov.confirmado === true || mov.confirmado === 1)) {
+      return { movimiento_id: movimientoId, aplicado: false, razon: "no confirmado" }
+    }
+
+    const cantidad = Number(mov.cantidad)
+    if (!Number.isFinite(cantidad) || cantidad === 0) {
+      return { movimiento_id: movimientoId, aplicado: false, razon: "cantidad nula" }
+    }
+
+    const sku: string | undefined = mov?.producto?.sku
+    if (!sku) {
+      return { movimiento_id: movimientoId, aplicado: false, razon: "sin producto" }
+    }
+    if (!mov.almacenes_id) {
+      return { movimiento_id: movimientoId, aplicado: false, razon: "sin almacen" }
+    }
+
+    const almacen = await nocodb(
+      `/api/v2/tables/${T_ALMACENES}/records/${mov.almacenes_id}`
+    )
+    const sincroniza =
+      almacen.sincroniza_medusa === true || almacen.sincroniza_medusa === 1
+    if (!sincroniza) {
+      await nocodb(`/api/v2/tables/${T_MOVIMIENTOS}/records`, {
+        method: "PATCH",
+        body: [{ Id: movimientoId, empujado_a_medusa: true }],
+      })
+      return { movimiento_id: movimientoId, aplicado: false, razon: "almacen local" }
+    }
+
+    const locationId: string | undefined = almacen.medusa_location_id
+    if (!locationId) {
+      return {
+        movimiento_id: movimientoId,
+        aplicado: false,
+        error: `almacen "${almacen.nombre_almacen}" sin medusa_location_id`,
+      }
+    }
+
+    const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+    const { data: items } = await query.graph({
+      entity: "inventory_item",
+      fields: ["id", "sku", "variants.sku"],
+      filters: { variants: { sku } } as any,
+    })
+    if (!items?.length) {
+      return { movimiento_id: movimientoId, aplicado: false, error: `SKU ${sku} sin inventario` }
+    }
+    if (items.length > 1) {
+      return { movimiento_id: movimientoId, aplicado: false, error: `SKU ${sku} duplicado` }
+    }
+
+    const inventoryService: IInventoryService = scope.resolve(Modules.INVENTORY)
+    const nivel = await inventoryService.adjustInventory(
+      items[0].id,
+      locationId,
+      cantidad
+    )
+
+    await nocodb(`/api/v2/tables/${T_MOVIMIENTOS}/records`, {
+      method: "PATCH",
+      body: [{ Id: movimientoId, empujado_a_medusa: true }],
+    })
+
+    console.log(
+      `${LOG} mov ${movimientoId}: ${sku} ${cantidad > 0 ? "+" : ""}${cantidad} -> ${nivel.stocked_quantity}`
+    )
+    return {
+      movimiento_id: movimientoId,
+      aplicado: true,
+      sku,
+      delta: cantidad,
+      stocked_quantity: nivel.stocked_quantity,
+    }
+  } catch (err: any) {
+    console.error(`${LOG} error en mov ${movimientoId}:`, err?.message)
+    return { movimiento_id: movimientoId, aplicado: false, error: err?.message }
+  }
+}
+
+/** Movimientos confirmados que aun no llegaron a Medusa. */
+async function pendientes(excluir: number): Promise<number[]> {
+  const where = encodeURIComponent("(confirmado,eq,true)~and(empujado_a_medusa,eq,false)")
+  const res = await nocodb(
+    `/api/v2/tables/${T_MOVIMIENTOS}/records?where=${where}&limit=50`
+  )
+  return (res.list || [])
+    .map((m: any) => Number(m.Id))
+    .filter((id: number) => Number.isFinite(id) && id !== excluir)
+}
+
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   if (!secretoValido(req.headers["x-nocodb-secret"])) {
     console.warn(`${LOG} secreto invalido o ausente`)
@@ -104,122 +227,29 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   try {
-    const mov = await nocodb(
-      `/api/v2/tables/${T_MOVIMIENTOS}/records/${movimientoId}`
-    )
+    const principal = await procesarMovimiento(movimientoId, req.scope)
 
-    // Guardia de idempotencia: si ya se empujo, no se repite.
-    if (mov.empujado_a_medusa === true || mov.empujado_a_medusa === 1) {
-      console.log(`${LOG} mov ${movimientoId} ya sincronizado, se omite`)
-      res.status(200).json({ ok: true, aplicado: false, razon: "ya sincronizado" })
-      return
+    // Barrido: el webhook solo avisa de la primera fila de una edicion en
+    // lote, asi que se recogen los demas confirmados sin empujar.
+    const otros: Resultado[] = []
+    for (const id of await pendientes(movimientoId)) {
+      otros.push(await procesarMovimiento(id, req.scope))
     }
 
-    // Guardia de completitud: NocoDB dispara el webhook en el insert, antes de
-    // que se hayan establecido los enlaces a producto y almacen (y enlazar no
-    // cuenta como update, asi que no habria reintento). El movimiento solo se
-    // asienta cuando el usuario lo marca como confirmado, con todo ya cargado.
-    if (!(mov.confirmado === true || mov.confirmado === 1)) {
-      console.log(`${LOG} mov ${movimientoId} aun sin confirmar, se omite`)
-      res.status(200).json({ ok: true, aplicado: false, razon: "no confirmado" })
-      return
+    const aplicados = [principal, ...otros].filter((x) => x.aplicado)
+    if (otros.length) {
+      console.log(`${LOG} barrido: ${otros.length} pendientes procesados`)
     }
-
-    const cantidad = Number(mov.cantidad)
-    if (!Number.isFinite(cantidad) || cantidad === 0) {
-      res.status(200).json({ ok: true, aplicado: false, razon: "cantidad nula" })
-      return
-    }
-
-    const sku: string | undefined = mov?.producto?.sku
-    if (!sku) {
-      console.warn(`${LOG} mov ${movimientoId} sin producto enlazado`)
-      res.status(200).json({ ok: true, aplicado: false, razon: "sin producto" })
-      return
-    }
-
-    const almacenId = mov.almacenes_id
-    if (!almacenId) {
-      res.status(200).json({ ok: true, aplicado: false, razon: "sin almacen" })
-      return
-    }
-
-    const almacen = await nocodb(
-      `/api/v2/tables/${T_ALMACENES}/records/${almacenId}`
-    )
-
-    // Bodegas de alquiler, demo o consignacion NO tocan Medusa.
-    const sincroniza =
-      almacen.sincroniza_medusa === true || almacen.sincroniza_medusa === 1
-    if (!sincroniza) {
-      console.log(
-        `${LOG} mov ${movimientoId}: almacen "${almacen.nombre_almacen}" no sincroniza`
-      )
-      await nocodb(`/api/v2/tables/${T_MOVIMIENTOS}/records`, {
-        method: "PATCH",
-        body: [{ Id: movimientoId, empujado_a_medusa: true }],
-      })
-      res.status(200).json({ ok: true, aplicado: false, razon: "almacen local" })
-      return
-    }
-
-    const locationId: string | undefined = almacen.medusa_location_id
-    if (!locationId) {
-      console.error(
-        `${LOG} almacen "${almacen.nombre_almacen}" sincroniza pero no tiene medusa_location_id`
-      )
-      res.status(200).json({ ok: false, error: "almacen sin medusa_location_id" })
-      return
-    }
-
-    // Resolver el InventoryItem desde el lado correcto: el join-table de
-    // variantes devuelve pvitem_*, no el iitem_* real.
-    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-    const { data: items } = await query.graph({
-      entity: "inventory_item",
-      fields: ["id", "sku", "variants.sku"],
-      filters: { variants: { sku } } as any,
-    })
-
-    if (!items?.length) {
-      console.error(`${LOG} no existe InventoryItem para SKU ${sku}`)
-      res.status(200).json({ ok: false, error: `SKU ${sku} sin inventario en Medusa` })
-      return
-    }
-    if (items.length > 1) {
-      console.error(`${LOG} SKU ${sku} tiene ${items.length} InventoryItems`)
-      res.status(200).json({ ok: false, error: `SKU ${sku} duplicado en Medusa` })
-      return
-    }
-
-    const inventoryService: IInventoryService = req.scope.resolve(Modules.INVENTORY)
-    const nivel = await inventoryService.adjustInventory(
-      items[0].id,
-      locationId,
-      cantidad
-    )
-
-    await nocodb(`/api/v2/tables/${T_MOVIMIENTOS}/records`, {
-      method: "PATCH",
-      body: [{ Id: movimientoId, empujado_a_medusa: true }],
-    })
-
-    console.log(
-      `${LOG} mov ${movimientoId}: ${sku} ${cantidad > 0 ? "+" : ""}${cantidad} ` +
-        `en ${almacen.nombre_almacen} -> stocked=${nivel.stocked_quantity}`
-    )
 
     res.status(200).json({
       ok: true,
-      aplicado: true,
-      sku,
-      delta: cantidad,
-      stocked_quantity: nivel.stocked_quantity,
+      ...principal,
+      barrido: otros.length,
+      aplicados_total: aplicados.length,
+      detalle: otros,
     })
   } catch (err: any) {
-    // No se marca empujado_a_medusa: el movimiento queda visible en la vista
-    // "Sin sincronizar a Medusa" para reintentar.
-    console.error(`${LOG} error en mov ${movimientoId}:`, err?.message)
+    console.error(`${LOG} error general:`, err?.message)
     res.status(500).json({ ok: false, error: err?.message })
   }
 }
