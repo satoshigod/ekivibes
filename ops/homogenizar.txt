@@ -1,21 +1,21 @@
 Login OK
 
 --- 1. Descripciones homogeneizadas ---
-[DRY] hitair-mlv2-rc-vest-black        20 -> 88 palabras
-[DRY] hitair-hds-ms-jacket-black       14 -> 84 palabras
-[DRY] hitair-mx9-jacket-black          15 -> 85 palabras
+[OK] hitair-mlv2-rc-vest-black        20 -> 88 palabras
+[OK] hitair-hds-ms-jacket-black       14 -> 84 palabras
+[OK] hitair-mx9-jacket-black          15 -> 85 palabras
 
 --- 2. Categoria de los cartuchos de CO2 ---
-[DRY] cartucho-de-co2-hit-air-50cc     ['Repuestos y Accesorios Hit-Air'] -> ['Accesorios Moto', 'Repuestos y Accesorios Hit-Air']
-[DRY] cartucho-de-co2-hit-air-60cc     ['Repuestos y Accesorios Hit-Air'] -> ['Accesorios Moto', 'Repuestos y Accesorios Hit-Air']
+[OK] cartucho-de-co2-hit-air-50cc     ['Repuestos y Accesorios Hit-Air'] -> ['Accesorios Moto', 'Repuestos y Accesorios Hit-Air']
+[OK] cartucho-de-co2-hit-air-60cc     ['Repuestos y Accesorios Hit-Air'] -> ['Accesorios Moto', 'Repuestos y Accesorios Hit-Air']
 
 === ESTADO FINAL DEL CANAL HIT-AIR COLOMBIA ===
-  cartucho-de-co2-hit-air-50cc                   83 palabras  ['Repuestos y Accesorios Hit-Air']
-  cartucho-de-co2-hit-air-60cc                   79 palabras  ['Repuestos y Accesorios Hit-Air']
+  cartucho-de-co2-hit-air-50cc                   83 palabras  ['Repuestos y Accesorios Hit-Air', 'Accesorios Moto']
+  cartucho-de-co2-hit-air-60cc                   79 palabras  ['Repuestos y Accesorios Hit-Air', 'Accesorios Moto']
   hitair-coiled-wire-moto                        87 palabras  ['Accesorios Moto']
-  hitair-mlv2-rc-vest-black                      20 palabras  ['Chaquetas y Chalecos Moto']
-  hitair-hds-ms-jacket-black                     14 palabras  ['Chaquetas y Chalecos Moto']
-  hitair-mx9-jacket-black                        15 palabras  ['Chaquetas y Chalecos Moto']
+  hitair-mlv2-rc-vest-black                      88 palabras  ['Chaquetas y Chalecos Moto']
+  hitair-hds-ms-jacket-black                     84 palabras  ['Chaquetas y Chalecos Moto']
+  hitair-mx9-jacket-black                        85 palabras  ['Chaquetas y Chalecos Moto']
   hitair-eu7-touring-jacket                      89 palabras  ['Chaquetas y Chalecos Moto']
   llave-bola-conector-hebilla-tipo-b-hitair      83 palabras  ['Repuestos y Accesorios Hit-Air', 'Accesorios Moto']
   protector-espalda-ce-ym-hitair                 90 palabras  ['Accesorios Moto']
