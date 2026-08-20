@@ -280,6 +280,11 @@ def main():
             if v.get("sku"):
                 existentes.add(v["sku"])
 
+    faltan_cat = {c for pr in PRODUCTOS for c in pr["categorias"] if c not in cats}
+    faltan_ch = {c for pr in PRODUCTOS for c in pr["canales"] if c not in canales}
+    if faltan_cat or faltan_ch:
+        raise SystemExit("Faltan categorias=%s canales=%s. Abortando." % (faltan_cat, faltan_ch))
+
     for pr in PRODUCTOS:
         sku = pr["sku"]
         if sku in existentes:
@@ -299,7 +304,9 @@ def main():
             "shipping_profile_id": perfil,
             "thumbnail": imgs[0]["url"],
             "images": imgs,
-            "category_ids": [cats[c] for c in pr["categorias"] if c in cats],
+            # La Admin REST API espera "categories": [{id}], no "category_ids"
+            # (ese formato es el de createProductsWorkflow, no el del endpoint).
+            "categories": [{"id": cats[c]} for c in pr["categorias"] if c in cats],
             "sales_channels": [{"id": canales[c]} for c in pr["canales"] if c in canales],
             "options": [{"title": "Presentacion", "values": ["Estandar"]}],
             "variants": [{
