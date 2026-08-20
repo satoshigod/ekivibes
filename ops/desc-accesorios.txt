@@ -1,28 +1,28 @@
 Login OK
 
-[DRY] protector-espalda-ce-ym-hitair                173 -> 90 palabras
-[DRY] protector-espalda-ce-ym-funda-velcro-hitair   151 -> 76 palabras
-[DRY] protector-pecho-ce-asc-hitair                 133 -> 79 palabras
-[DRY] protector-pecho-hc-hitair                     118 -> 88 palabras
-[DRY] soporte-conector-tipo-hebilla-hitair          135 -> 87 palabras
-[DRY] set-herramientas-key-box-tipo-b-hitair        144 -> 80 palabras  + galeria 1 fotos
-[DRY] hitair-coiled-wire-moto                       12 -> 87 palabras
-[DRY] cartucho-de-co2-hit-air-50cc                  26 -> 83 palabras
-[DRY] cartucho-de-co2-hit-air-60cc                  42 -> 79 palabras
-[DRY] llave-bola-conector-hebilla-tipo-b-hitair     206 -> 83 palabras
+[OK] protector-espalda-ce-ym-hitair                173 -> 90 palabras
+[OK] protector-espalda-ce-ym-funda-velcro-hitair   151 -> 76 palabras
+[OK] protector-pecho-ce-asc-hitair                 133 -> 79 palabras
+[OK] protector-pecho-hc-hitair                     118 -> 88 palabras
+[OK] soporte-conector-tipo-hebilla-hitair          135 -> 87 palabras
+[OK] set-herramientas-key-box-tipo-b-hitair        144 -> 80 palabras  + galeria corregida
+[OK] hitair-coiled-wire-moto                       12 -> 87 palabras
+[OK] cartucho-de-co2-hit-air-50cc                  26 -> 83 palabras
+[OK] cartucho-de-co2-hit-air-60cc                  42 -> 79 palabras
+[OK] llave-bola-conector-hebilla-tipo-b-hitair     206 -> 83 palabras
 
 === ESTADO DEL CANAL HIT-AIR COLOMBIA ===
-  cartucho-de-co2-hit-air-50cc                    26 palabras   2 fotos  
-  cartucho-de-co2-hit-air-60cc                    42 palabras   2 fotos  
-  hitair-coiled-wire-moto                         12 palabras   3 fotos  
+  cartucho-de-co2-hit-air-50cc                    83 palabras   2 fotos  
+  cartucho-de-co2-hit-air-60cc                    79 palabras   2 fotos  
+  hitair-coiled-wire-moto                         87 palabras   3 fotos  
   hitair-mlv2-rc-vest-black                       20 palabras   4 fotos  (chaqueta/chaleco, sin tocar)
   hitair-hds-ms-jacket-black                      14 palabras   4 fotos  (chaqueta/chaleco, sin tocar)
   hitair-mx9-jacket-black                         15 palabras   4 fotos  (chaqueta/chaleco, sin tocar)
   hitair-eu7-touring-jacket                       89 palabras   8 fotos  (chaqueta/chaleco, sin tocar)
-  llave-bola-conector-hebilla-tipo-b-hitair      206 palabras   2 fotos  
-  protector-espalda-ce-ym-hitair                 173 palabras   6 fotos  
-  protector-espalda-ce-ym-funda-velcro-hitair    151 palabras   6 fotos  
-  protector-pecho-ce-asc-hitair                  133 palabras   6 fotos  
-  protector-pecho-hc-hitair                      118 palabras   6 fotos  
-  soporte-conector-tipo-hebilla-hitair           135 palabras   3 fotos  
-  set-herramientas-key-box-tipo-b-hitair         144 palabras   2 fotos  
+  llave-bola-conector-hebilla-tipo-b-hitair       83 palabras   2 fotos  
+  protector-espalda-ce-ym-hitair                  90 palabras   6 fotos  
+  protector-espalda-ce-ym-funda-velcro-hitair     76 palabras   6 fotos  
+  protector-pecho-ce-asc-hitair                   79 palabras   6 fotos  
+  protector-pecho-hc-hitair                       88 palabras   6 fotos  
+  soporte-conector-tipo-hebilla-hitair            87 palabras   3 fotos  
+  set-herramientas-key-box-tipo-b-hitair          80 palabras   1 fotos  
