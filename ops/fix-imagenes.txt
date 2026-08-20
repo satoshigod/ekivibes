@@ -1,28 +1,28 @@
 Login OK
 
-[DRY] Chaleco Airbag VH (Juvenil / Adulto): 7 fotos -> thumbnail https://ekivibes-storefront-production.up.railway.app/product-details/vh-adulto-main.jpg
-[DRY] Chaleco Airbag VH Niños: 6 fotos -> thumbnail https://ekivibes-storefront-production.up.railway.app/product-details/vh-ninos-main.jpg
-[DRY] Chaleco Airbag MLV3-H (Juvenil / Adulto): 7 fotos -> thumbnail https://ekivibes-storefront-production.up.railway.app/product-details/mlv3h-adulto-main.jpg
-[DRY] Chaleco Airbag MLV3-H Niños: 6 fotos -> thumbnail https://ekivibes-storefront-production.up.railway.app/product-details/mlv3h-ninos-main.jpg
-[DRY] Cartucho de CO2 Hit-Air 50cc: 2 fotos -> thumbnail https://ekivibes-storefront-production.up.railway.app/product-details/co2-50cc-main.jpg
-[DRY] Cartucho de CO2 Hit-Air 60cc: 2 fotos -> thumbnail https://ekivibes-storefront-production.up.railway.app/product-details/co2-60cc-main.jpg
-[DRY] Llave de Resina Tipo B Hit-Air Ninos: 1 fotos -> thumbnail https://ekivibes-storefront-production.up.railway.app/product-details/resin-keyball-main.jpg
-[DRY] Lanyard Bungee All-in-One Hit-Air: 6 fotos -> thumbnail https://ekivibes-storefront-production.up.railway.app/product-details/lanyard-main.jpg
-[DRY] Cable en Espiral Hit-Air (Motociclismo): 3 fotos -> thumbnail https://hitair-colombia-storefront-production.up.railway.app/product-details/coiled-wire-moto-main.jpg
-[DRY] Chaqueta Hit-Air EU7 Touring: 8 fotos -> thumbnail https://hitair-colombia-storefront-production.up.railway.app/product-details/eu7-main.jpg
+[ARREGLADO] Chaleco Airbag VH (Juvenil / Adulto) -> 7 fotos, thumbnail vh-adulto-main.jpg
+[ARREGLADO] Chaleco Airbag VH Niños -> 6 fotos, thumbnail vh-ninos-main.jpg
+[ARREGLADO] Chaleco Airbag MLV3-H (Juvenil / Adulto) -> 7 fotos, thumbnail mlv3h-adulto-main.jpg
+[ARREGLADO] Chaleco Airbag MLV3-H Niños -> 6 fotos, thumbnail mlv3h-ninos-main.jpg
+[ARREGLADO] Cartucho de CO2 Hit-Air 50cc -> 2 fotos, thumbnail co2-50cc-main.jpg
+[ARREGLADO] Cartucho de CO2 Hit-Air 60cc -> 2 fotos, thumbnail co2-60cc-main.jpg
+[ARREGLADO] Llave de Resina Tipo B Hit-Air Ninos -> 1 fotos, thumbnail resin-keyball-main.jpg
+[ARREGLADO] Lanyard Bungee All-in-One Hit-Air -> 6 fotos, thumbnail lanyard-main.jpg
+[ARREGLADO] Cable en Espiral Hit-Air (Motociclismo) -> 3 fotos, thumbnail coiled-wire-moto-main.jpg
+[ARREGLADO] Chaqueta Hit-Air EU7 Touring -> 8 fotos, thumbnail eu7-main.jpg
 
 === VERIFICACION FINAL ===
-  Chaleco Airbag VH (Juvenil / Adulto)                    ROTAS: 2 (2 fotos)
-  Chaleco Airbag MLV3-H (Juvenil / Adulto)                ROTAS: 3 (2 fotos)
-  Chaleco Airbag VH Niños                                 ROTAS: 3 (2 fotos)
-  Chaleco Airbag MLV3-H Niños                             ROTAS: 3 (2 fotos)
-  Cartucho de CO2 Hit-Air 50cc                            ROTAS: 2 (1 fotos)
-  Cartucho de CO2 Hit-Air 60cc                            ROTAS: 2 (1 fotos)
-  Llave de Resina Tipo B Hit-Air Ninos                    ROTAS: 2 (1 fotos)
-  Lanyard Bungee All-in-One Hit-Air                       ROTAS: 2 (1 fotos)
-  Cable en Espiral Hit-Air (Motociclismo)                 sin thumbnail (0 fotos)
+  Chaleco Airbag VH (Juvenil / Adulto)                    ok (7 fotos)
+  Chaleco Airbag MLV3-H (Juvenil / Adulto)                ok (7 fotos)
+  Chaleco Airbag VH Niños                                 ok (6 fotos)
+  Chaleco Airbag MLV3-H Niños                             ok (6 fotos)
+  Cartucho de CO2 Hit-Air 50cc                            ok (2 fotos)
+  Cartucho de CO2 Hit-Air 60cc                            ok (2 fotos)
+  Llave de Resina Tipo B Hit-Air Ninos                    ok (1 fotos)
+  Lanyard Bungee All-in-One Hit-Air                       ok (6 fotos)
+  Cable en Espiral Hit-Air (Motociclismo)                 ok (3 fotos)
   Chaleco Hit-Air MLV2-RC (Negro)                         ok (4 fotos)
   Chaqueta Hit-Air HDS-MS (Negro)                         ok (4 fotos)
   Chaqueta Hit-Air MX-9 (Negro)                           ok (4 fotos)
-  Chaqueta Hit-Air EU7 Touring                            ROTAS: 7 (6 fotos)
+  Chaqueta Hit-Air EU7 Touring                            ok (8 fotos)
   Llave de Bola con Conector Tipo Hebilla (Tipo B) Hit-Ai ok (2 fotos)
