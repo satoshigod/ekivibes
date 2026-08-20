@@ -1,0 +1,31 @@
+name: Crear Productos
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "1 = simulacion sin escribir"
+        required: false
+        default: "1"
+jobs:
+  crear:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ops-output
+      - name: Crear productos
+        env:
+          MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
+          MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: python3 scripts/create_productos_2026_08.py > /tmp/o.txt 2>&1 || true
+      - name: Publicar
+        run: |
+          mkdir -p ops && cp /tmp/o.txt ops/crear-productos.txt
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A ops/
+          git commit -m "ops: crear-productos $(date -u +%FT%TZ)" || true
+          git push origin ops-output
