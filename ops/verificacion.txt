@@ -1,0 +1,24 @@
+Publishable keys encontradas por canal:
+  TIENDA EKIVIBE COLOMBIA                       pk_e6d0bbb179bd8e3e38e3e...
+  Hit-Air Colombia                              pk_1235190c964edd2379746...
+
+==================================================================
+TIENDA: Ekivibes
+==================================================================
+
+==================================================================
+TIENDA: Hit-Air Colombia
+==================================================================
+
+==================================================================
+CONTROL DE FUGA ENTRE CANALES
+==================================================================
+  ERROR  PAD-BACK-YM      esperado=['Hit-Air Colombia'] real=[]
+  ERROR  PAD-BACK-YMCV    esperado=['Hit-Air Colombia'] real=[]
+  ERROR  PAD-CHEST-ASC    esperado=['Hit-Air Colombia'] real=[]
+  ERROR  PAD-CHEST-HC     esperado=['Hit-Air Colombia'] real=[]
+  ERROR  CONN-HOLDER      esperado=['Hit-Air Colombia'] real=[]
+  ERROR  TOOL-SET         esperado=['Hit-Air Colombia', 'TIENDA EKIVIBE COLOMBIA'] real=[]
+
+Equitacion no debe aparecer en Hit-Air ni viceversa.
+RESULTADO: 6 PROBLEMAS
