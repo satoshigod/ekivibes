@@ -68,8 +68,15 @@ for canal, etiqueta in TIENDAS:
     print("=" * 66)
     print("TIENDA: %s" % etiqueta)
     print("=" * 66)
-    d = req("GET", "/store/products?limit=100&fields=id,title,handle,thumbnail,*images,*variants.calculated_price,*categories",
+    # region_id es obligatorio para que Medusa calcule precios en la Store API.
+    # "*variants" (comodin completo) es necesario: pedir solo
+    # "*variants.calculated_price" recorta el resto de campos de la variante
+    # y el sku vuelve vacio.
+    regs = req("GET", "/store/regions?limit=5", {"x-publishable-api-key": tk}).get("regions", [])
+    reg = regs[0]["id"] if regs else ""
+    d = req("GET", "/store/products?limit=100&region_id=%s&fields=id,title,handle,thumbnail,*images,*variants,*variants.calculated_price,*categories" % reg,
             {"x-publishable-api-key": tk})
+    print("  region=%s  productos totales en esta tienda=%d" % (reg, len(d.get("products", []))))
     if "__error__" in d:
         print("  ERROR: %s" % d)
         continue
