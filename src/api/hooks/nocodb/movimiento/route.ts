@@ -168,12 +168,20 @@ async function procesarMovimiento(
       return { movimiento_id: movimientoId, aplicado: false, error: `SKU ${sku} duplicado` }
     }
 
+    // Lock sobre el inventory_item: si una venta esta reservando o ajustando
+    // el mismo SKU al mismo tiempo, este ajuste espera su turno en vez de
+    // pisar la mutacion. Sin esto, Medusa usa el proveedor en memoria (no
+    // apto para produccion) y el ajuste corre sin ninguna serializacion.
+    const lockingService = scope.resolve(Modules.LOCKING)
     const inventoryService: IInventoryService = scope.resolve(Modules.INVENTORY)
-    const nivel = await inventoryService.adjustInventory(
-      items[0].id,
-      locationId,
-      cantidad
-    )
+    const lockKey = items[0].id
+    await lockingService.acquire(lockKey, { expire: 10 })
+    let nivel
+    try {
+      nivel = await inventoryService.adjustInventory(lockKey, locationId, cantidad)
+    } finally {
+      await lockingService.release(lockKey)
+    }
 
     await nocodb(`/api/v2/tables/${T_MOVIMIENTOS}/records`, {
       method: "PATCH",
