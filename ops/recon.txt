@@ -1,0 +1,106 @@
+=== LOGIN OK ===
+
+=== SALES CHANNELS ===
+  sc_01KZC1XSGB8E96A92MV4APBN02  |  Venta Directa (Mostrador y Mayorista)
+  sc_01KZPAP849X2E6DFPE4GDAG7MC  |  TIENDA EKIVIBE COLOMBIA
+  sc_01M08WFE5A8XFDRJEHGRJZBXPE  |  Hit-Air Colombia
+
+=== PRODUCT CATEGORIES ===
+  pcat_01KZPFD07DXD8W9D8C0XV0Q0XT  |  handle=chalecos-airbag  |  name=Chalecos Airbag  |  parent=None  |  rank=0  active=True
+  pcat_01KZPFFJ6S8WDNGY8TXD0BRC1A  |  handle=repuestos-y-accesorios-hit-air  |  name=Repuestos y Accesorios Hit-Air  |  parent=None  |  rank=1  active=True
+  pcat_01M08WFE82B0FY2FRDJPJ1CSN0  |  handle=chaquetas-y-chalecos-moto  |  name=Chaquetas y Chalecos Moto  |  parent=None  |  rank=2  active=True
+  pcat_01M08WFE8Y1N0XH057VMP88AGN  |  handle=accesorios-moto  |  name=Accesorios Moto  |  parent=None  |  rank=3  active=True
+
+=== COLLECTIONS ===
+  (ninguna)
+
+=== STOCK LOCATIONS ===
+  sloc_01KZPAFBNMW4WBK5VRZQA5G1C2  |  BODEGA MEDELLIN
+  sloc_01KZXNX7PWYTJZE1KVASB4B76M  |  Bodega Principal
+
+=== SHIPPING PROFILES ===
+  sp_01KZAQVM0PRFN0B6PV0RPETWDB  |  Default Shipping Profile  |  type=default
+
+=== PRODUCTS ===
+total: 14
+
+- Chaleco Airbag VH (Juvenil / Adulto)
+    id=prod_01KZPGA9173EFNVPTRM4ZFKHS2 handle=chaleco-airbag-vh-juvenil-adulto status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Venta Directa (Mostrador y Mayorista)]  categorias=[Chalecos Airbag]  coleccion=None
+    variante: sku=VH-ADU-S title=S
+    variante: sku=VH-ADU-L title=L
+    variante: sku=VH-ADU-M title=M
+    thumbnail=None
+- Chaleco Airbag MLV3-H (Juvenil / Adulto)
+    id=prod_01KZPGKJGYE9A7MCANTS6V0Z97 handle=chaleco-airbag-mlv3-h-juvenil-adulto status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Venta Directa (Mostrador y Mayorista)]  categorias=[Chalecos Airbag]  coleccion=None
+    variante: sku=MLV-ADU-XS title=XS
+    variante: sku=MLV-ADU-S title=S
+    variante: sku=MLV-ADU-M title=M
+    variante: sku=MLV-ADU-L title=L
+    thumbnail=http://localhost:9000/static/1786388269401-b489792d7b2a98f31ae5eaef1243828a.jpg
+- Chaleco Airbag VH Niños
+    id=prod_01KZPGZYT740ZCEQBV4WDZ2ZXT handle=chaleco-airbag-vh-ninos status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Venta Directa (Mostrador y Mayorista)]  categorias=[Chalecos Airbag]  coleccion=None
+    variante: sku=VH-NIN-XS title=XS
+    thumbnail=http://localhost:9000/static/1786388675230-f2631e515e90e4f92a41d8b934506abebb95b5f29a988b4233a539a6be655929%20(1).jpg
+- Chaleco Airbag MLV3-H Niños
+    id=prod_01KZPH5JBJCFTASQ5EMVNQZMDB handle=chaleco-airbag-mlv3-h-ninos status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Venta Directa (Mostrador y Mayorista)]  categorias=[Chalecos Airbag]  coleccion=None
+    variante: sku=MLV-NIN-2XS title=2XS
+    thumbnail=http://localhost:9000/static/1786388858935-b3d1ccdbe3ea95299606b15d140659b6fc71f9a4d6353099f58bfedddc5486a3.jpg
+- Cartucho de CO2 Hit-Air 50cc
+    id=prod_01KZPHDZ593J0SZ3M5VAKJAX7Q handle=cartucho-de-co2-hit-air-50cc status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Venta Directa (Mostrador y Mayorista), Hit-Air Colombia]  categorias=[Repuestos y Accesorios Hit-Air]  coleccion=None
+    variante: sku=CO2-50CC title=Default variant
+    thumbnail=http://localhost:9000/static/1786389134285-9d36060d2660a677f29350e6758d2aed2f98dae4ba9c9b8c129221ee61ce5466%20(2).jpg
+- Cartucho de CO2 Hit-Air 60cc
+    id=prod_01KZPHH7F517EDT95CY79CH1BR handle=cartucho-de-co2-hit-air-60cc status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Venta Directa (Mostrador y Mayorista), Hit-Air Colombia]  categorias=[Repuestos y Accesorios Hit-Air]  coleccion=None
+    variante: sku=CO2-60CC title=Default variant
+    thumbnail=http://localhost:9000/static/1786389241118-459055ed59c25a2b7db13a9a02977e949ba988211919e08b4d0e1353b16d57e1%20(1).jpg
+- Llave de Resina Tipo B Hit-Air
+    id=prod_01KZPHKFRVH25ZEC6ZJXRG7CTV handle=llave-de-resina-tipo-b-hit-air status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Venta Directa (Mostrador y Mayorista)]  categorias=[Repuestos y Accesorios Hit-Air]  coleccion=None
+    variante: sku=KEY-RESIN title=Default variant
+    thumbnail=http://localhost:9000/static/1786389315198-descarga.jpeg
+- Lanyard Bungee All-in-One Hit-Air
+    id=prod_01KZPHRBHC18CQ31VKF86MAQ6T handle=lanyard-bungee-all-in-one-hit-air status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Venta Directa (Mostrador y Mayorista)]  categorias=[Repuestos y Accesorios Hit-Air]  coleccion=None
+    variante: sku=LANYARD-S title=S
+    variante: sku=LANYARD-L title=L
+    variante: sku=LANYARD-XS title=XS
+    thumbnail=http://localhost:9000/static/1786389474702-descarga%20(1).jpeg
+- Cable en Espiral Hit-Air (Motociclismo)
+    id=prod_01M08WFE9HAMV4JW3XQ32T6EK7 handle=hitair-coiled-wire-moto status=published
+    canales=[Hit-Air Colombia, Venta Directa (Mostrador y Mayorista)]  categorias=[Accesorios Moto]  coleccion=None
+    variante: sku=WIRE-COIL-MOTO title=Estándar
+    thumbnail=None
+- Chaleco Hit-Air MLV2-RC (Negro)
+    id=prod_01M08WFE9HFAQ3FBQQF074ZVMH handle=hitair-mlv2-rc-vest-black status=published
+    canales=[Hit-Air Colombia, Venta Directa (Mostrador y Mayorista)]  categorias=[Chaquetas y Chalecos Moto]  coleccion=None
+    variante: sku=MLV2-RC-BLK-M title=M
+    variante: sku=MLV2-RC-BLK-L title=L
+    thumbnail=https://hitair-colombia-storefront-production.up.railway.app/product-details/mlv2-rc-main.jpg
+- Chaqueta Hit-Air HDS-MS (Negro)
+    id=prod_01M08WFE9HJ9E3E4KZZCG5CZVH handle=hitair-hds-ms-jacket-black status=published
+    canales=[Hit-Air Colombia, Venta Directa (Mostrador y Mayorista)]  categorias=[Chaquetas y Chalecos Moto]  coleccion=None
+    variante: sku=HDS-MS-BLK-M title=M
+    thumbnail=https://hitair-colombia-storefront-production.up.railway.app/product-details/hdsms-main.jpg
+- Chaqueta Hit-Air MX-9 (Negro)
+    id=prod_01M08WFE9HNEJMCT35QXYRV53Y handle=hitair-mx9-jacket-black status=published
+    canales=[Hit-Air Colombia, Venta Directa (Mostrador y Mayorista)]  categorias=[Chaquetas y Chalecos Moto]  coleccion=None
+    variante: sku=MX9-BLK-M title=M
+    thumbnail=https://hitair-colombia-storefront-production.up.railway.app/product-details/mx9-main.jpg
+- Chaqueta Hit-Air EU7 Touring
+    id=prod_01M08WFE9HX5VDXVVG2PY8Z77P handle=hitair-eu7-touring-jacket status=published
+    canales=[Hit-Air Colombia, Venta Directa (Mostrador y Mayorista)]  categorias=[Chaquetas y Chalecos Moto]  coleccion=None
+    variante: sku=EU7-GRY-M title=Gris Oscuro / M
+    variante: sku=EU7-GRY-L title=Gris Oscuro / L
+    variante: sku=EU7-BLK-M title=Negro / M
+    thumbnail=https://www.hit-air.com/archives/005/202508/3fee64138293dd48b3170a283cabd5a525b3e7268c822281db58b52b7c1b1d42.jpg
+- Llave de Bola con Conector Tipo Hebilla (Tipo B) Hit-Air
+    id=prod_01M0FSQYJ53JQ3EBCHR9FR9ZWP handle=llave-bola-conector-hebilla-tipo-b-hitair status=published
+    canales=[TIENDA EKIVIBE COLOMBIA, Hit-Air Colombia]  categorias=[Repuestos y Accesorios Hit-Air, Accesorios Moto]  coleccion=None
+    variante: sku=KEY-BALL-B title=Estándar
+    thumbnail=https://hitair-colombia-storefront-production.up.railway.app/product-details/keyball-set-b-main.jpg
