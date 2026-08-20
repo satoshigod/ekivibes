@@ -2,8 +2,10 @@
  * src/scripts/update-key-resin-ninos.ts
  *
  * Actualiza el producto "Llave de Resina Tipo B Hit-Air" (SKU: KEY-RESIN):
- *   1. Agrega "Niños" al título — es un repuesto especial para jinetes de
- *      bajo peso / niños, distinto de la llave estándar.
+ *   1. Agrega "Ninos" al título — es un repuesto especial para jinetes de
+ *      bajo peso / ninos, distinto de la llave estandar.
+ *      (Nota: en Medusa backend se evita la ñ — usar "n" plano. La ortografia
+ *      correcta con ñ ("Niños") se maneja solo en el front end de Ekivibes.)
  *   2. Reemplaza la descripción (el texto anterior estaba mezclado con el
  *      de la herramienta de rearmado — no correspondía a este producto)
  *      por el texto técnico correcto, traducido de la ficha oficial Hit-Air.
@@ -20,11 +22,11 @@ import { updateProductsWorkflow } from "@medusajs/medusa/core-flows";
 const PRODUCT_ID = "prod_01KZPHKFRVH25ZEC6ZJXRG7CTV";
 const EKIVIBES_CHANNEL_ID = "sc_01KZPAP849X2E6DFPE4GDAG7MC"; // TIENDA EKIVIBE COLOMBIA
 
-const TITLE = "Llave de Resina Tipo B Hit-Air Niños";
+const TITLE = "Llave de Resina Tipo B Hit-Air Ninos";
 
 const DESCRIPTION =
   "Llave de resina (bola de resina) Tipo B, repuesto original Hit-Air para el sistema de activación " +
-  "mecánica del chaleco airbag. Diseñada específicamente para jinetes de bajo peso (niños): libera el " +
+  "mecánica del chaleco airbag. Pensada específicamente para jinetes de bajo peso (ninos): libera el " +
   "airbag con menos tensión que la llave estándar, ya que el mecanismo cede con mayor facilidad ante " +
   "una caída.\n\n" +
   "*Esta llave de resina no se puede usar en chalecos que originalmente traen una llave metálica — " +
