@@ -2,11 +2,23 @@ Login OK
 
 Bodega destino: Bodega Principal (sloc_01KZXNX7PWYTJZE1KVASB4B76M)
 
-[FALLO] PAD-BACK-YM: {'__error__': {'type': 'invalid_data', 'message': "Invalid request: Unrecognized fields: 'category_ids'"}, '__status__': 400}
-[FALLO] PAD-BACK-YMCV: {'__error__': {'type': 'invalid_data', 'message': "Invalid request: Unrecognized fields: 'category_ids'"}, '__status__': 400}
-[FALLO] PAD-CHEST-ASC: {'__error__': {'type': 'invalid_data', 'message': "Invalid request: Unrecognized fields: 'category_ids'"}, '__status__': 400}
-[FALLO] PAD-CHEST-HC: {'__error__': {'type': 'invalid_data', 'message': "Invalid request: Unrecognized fields: 'category_ids'"}, '__status__': 400}
-[FALLO] CONN-HOLDER: {'__error__': {'type': 'invalid_data', 'message': "Invalid request: Unrecognized fields: 'category_ids'"}, '__status__': 400}
-[FALLO] TOOL-SET: {'__error__': {'type': 'invalid_data', 'message': "Invalid request: Unrecognized fields: 'category_ids'"}, '__status__': 400}
+[OK] creado PAD-BACK-YM -> prod_01M0GA2PRHMCJZTBCTTY35AV0V
+   inventario: 10 uds en Bodega Principal -> OK
+[OK] creado PAD-BACK-YMCV -> prod_01M0GA2QMD7TEFC20D9SSE3M1Y
+   inventario: 10 uds en Bodega Principal -> OK
+[OK] creado PAD-CHEST-ASC -> prod_01M0GA2RES4NVE909DWC86Q24F
+   inventario: 10 uds en Bodega Principal -> OK
+[OK] creado PAD-CHEST-HC -> prod_01M0GA2SAW99NH6TVZCCQ3D59Q
+   inventario: 10 uds en Bodega Principal -> OK
+[OK] creado CONN-HOLDER -> prod_01M0GA2T6TE8XE8F9EN0XZ875S
+   inventario: 10 uds en Bodega Principal -> OK
+[OK] creado TOOL-SET -> prod_01M0GA2V0XMY215E0BMRPG5XYT
+   inventario: 10 uds en Bodega Principal -> OK
 
 === VERIFICACION ===
+- Protector de Espalda CE YM Hit-Air [published] canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] cats=['Accesorios Moto'] skus=['PAD-BACK-YM']
+- Protector de Espalda CE YM con Funda Velcro Hit-Air [published] canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] cats=['Accesorios Moto'] skus=['PAD-BACK-YMCV']
+- Protector de Pecho CE ASC Hit-Air (Par) [published] canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] cats=['Accesorios Moto'] skus=['PAD-CHEST-ASC']
+- Protector de Pecho HC Hit-Air (Par) [published] canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] cats=['Accesorios Moto'] skus=['PAD-CHEST-HC']
+- Soporte de Conector Tipo Hebilla Hit-Air [published] canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] cats=['Accesorios Moto'] skus=['CONN-HOLDER']
+- Set de Herramientas Key Box Tipo B Hit-Air [published] canales=['Hit-Air Colombia', 'TIENDA EKIVIBE COLOMBIA', 'Venta Directa (Mostrador y Mayorista)'] cats=['Repuestos y Accesorios Hit-Air', 'Accesorios Moto'] skus=['TOOL-SET']
