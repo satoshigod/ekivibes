@@ -1,0 +1,54 @@
+=== CATEGORIAS Y SUS PRODUCTOS (Admin) ===
+
+Accesorios Moto (8):
+    hitair-coiled-wire-moto
+    llave-bola-conector-hebilla-tipo-b-hitair
+    protector-espalda-ce-ym-funda-velcro-hitair
+    protector-espalda-ce-ym-hitair
+    protector-pecho-ce-asc-hitair
+    protector-pecho-hc-hitair
+    set-herramientas-key-box-tipo-b-hitair
+    soporte-conector-tipo-hebilla-hitair
+
+Chalecos Airbag (4):
+    chaleco-airbag-mlv3-h-juvenil-adulto
+    chaleco-airbag-mlv3-h-ninos
+    chaleco-airbag-vh-juvenil-adulto
+    chaleco-airbag-vh-ninos
+
+Chaquetas y Chalecos Moto (4):
+    hitair-eu7-touring-jacket
+    hitair-hds-ms-jacket-black
+    hitair-mlv2-rc-vest-black
+    hitair-mx9-jacket-black
+
+Repuestos y Accesorios Hit-Air (6):
+    cartucho-de-co2-hit-air-50cc
+    cartucho-de-co2-hit-air-60cc
+    lanyard-bungee-all-in-one-hit-air
+    llave-bola-conector-hebilla-tipo-b-hitair
+    llave-de-resina-tipo-b-hit-air
+    set-herramientas-key-box-tipo-b-hitair
+
+SIN CATEGORIA (0): []
+
+=== CO2: estado detallado ===
+  cartucho-de-co2-hit-air-50cc
+     categorias: ['Repuestos y Accesorios Hit-Air']
+     canales:    ['TIENDA EKIVIBE COLOMBIA', 'Venta Directa (Mostrador y Mayorista)', 'Hit-Air Colombia']
+  cartucho-de-co2-hit-air-60cc
+     categorias: ['Repuestos y Accesorios Hit-Air']
+     canales:    ['TIENDA EKIVIBE COLOMBIA', 'Venta Directa (Mostrador y Mayorista)', 'Hit-Air Colombia']
+
+=== STORE API: categoria accesorios-moto ===
+categorias visibles en la tienda: ['chalecos-airbag', 'repuestos-y-accesorios-hit-air', 'chaquetas-y-chalecos-moto', 'accesorios-moto']
+id accesorios-moto: pcat_01M08WFE8Y1N0XH057VMP88AGN
+productos que devuelve la tienda en esa categoria: 8
+    hitair-coiled-wire-moto
+    llave-bola-conector-hebilla-tipo-b-hitair
+    protector-espalda-ce-ym-hitair
+    protector-espalda-ce-ym-funda-velcro-hitair
+    protector-pecho-ce-asc-hitair
+    protector-pecho-hc-hitair
+    soporte-conector-tipo-hebilla-hitair
+    set-herramientas-key-box-tipo-b-hitair
