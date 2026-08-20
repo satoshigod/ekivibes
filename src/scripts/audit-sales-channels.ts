@@ -26,11 +26,12 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 function segmento(skus: string[]): string {
   const moto = /^(MLV2|HDS|MX9|EU7|WIRE)/i
-  const equi = /^(VH|MLV-|KEY|LANYARD)/i
-  // CO2 es accesorio universal Hit-Air (recarga chalecos y chaquetas de
-  // ambos segmentos) — vinculado a Ekivibes Y Hit-Air Colombia desde el
-  // 20-ago-2026 a proposito. No cuenta para el aviso de MEZCLADO.
-  const compartido = /^CO2/i
+  const equi = /^(VH|MLV-|KEY-RESIN|LANYARD)/i
+  // CO2 y KEY-BALL-B son accesorios universales Hit-Air (recargan/reparan
+  // chalecos y chaquetas de ambos segmentos) — vinculados a Ekivibes Y
+  // Hit-Air Colombia a proposito (CO2 desde el 20-ago-2026, KEY-BALL-B
+  // desde su creacion el mismo dia). No cuentan para el aviso de MEZCLADO.
+  const compartido = /^(CO2|KEY-BALL)/i
   let m = 0
   let e = 0
   let c = 0
@@ -176,3 +177,4 @@ export default async function auditSalesChannels({ container }: ExecArgs) {
   logger.info("")
   logger.info(`Resumen: ${canales.length} canales, ${productos.length} productos.`)
 }
+
