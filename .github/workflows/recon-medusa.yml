@@ -4,10 +4,23 @@ on:
 jobs:
   recon:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Recon
         env:
           MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
           MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
-        run: python3 scripts/recon_medusa.py
+        run: python3 scripts/recon_medusa.py > /tmp/recon.txt 2>&1 || true
+      - name: Publicar salida en rama ops-output
+        run: |
+          git fetch origin ops-output
+          git checkout -B ops-output origin/ops-output
+          mkdir -p ops
+          cp /tmp/recon.txt ops/recon.txt
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add ops/recon.txt
+          git commit -m "ops: salida recon $(date -u +%FT%TZ)" || true
+          git push origin ops-output
