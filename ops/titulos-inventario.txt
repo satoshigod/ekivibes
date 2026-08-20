@@ -2,19 +2,19 @@ Login OK
 
 InventoryItems en total: 30   |   dentro del alcance: 6
 
-[DRY] PAD-BACK-YM      'Estandar'  ->  'Protector de Espalda CE YM Hit-Air - Estandar'
-[DRY] PAD-BACK-YMCV    'Estandar'  ->  'Protector de Espalda CE YM con Funda Velcro Hit-Air - Estandar'
-[DRY] PAD-CHEST-ASC    'Estandar'  ->  'Protector de Pecho CE ASC Hit-Air (Par) - Estandar'
-[DRY] PAD-CHEST-HC     'Estandar'  ->  'Protector de Pecho HC Hit-Air (Par) - Estandar'
-[DRY] CONN-HOLDER      'Estandar'  ->  'Soporte de Conector Tipo Hebilla Hit-Air - Estandar'
-[DRY] TOOL-SET         'Estandar'  ->  'Set de Herramientas Key Box Tipo B Hit-Air - Estandar'
+[OK] PAD-BACK-YM      'Estandar'  ->  'Protector de Espalda CE YM Hit-Air - Estandar'
+[OK] PAD-BACK-YMCV    'Estandar'  ->  'Protector de Espalda CE YM con Funda Velcro Hit-Air - Estandar'
+[OK] PAD-CHEST-ASC    'Estandar'  ->  'Protector de Pecho CE ASC Hit-Air (Par) - Estandar'
+[OK] PAD-CHEST-HC     'Estandar'  ->  'Protector de Pecho HC Hit-Air (Par) - Estandar'
+[OK] CONN-HOLDER      'Estandar'  ->  'Soporte de Conector Tipo Hebilla Hit-Air - Estandar'
+[OK] TOOL-SET         'Estandar'  ->  'Set de Herramientas Key Box Tipo B Hit-Air - Estandar'
 
 ya correctos=0  cambiados=6  huerfanos=0
 
 === ESTADO FINAL (solo los 6) ===
-  CONN-HOLDER      Estandar
-  PAD-BACK-YM      Estandar
-  PAD-BACK-YMCV    Estandar
-  PAD-CHEST-ASC    Estandar
-  PAD-CHEST-HC     Estandar
-  TOOL-SET         Estandar
+  CONN-HOLDER      Soporte de Conector Tipo Hebilla Hit-Air - Estandar
+  PAD-BACK-YM      Protector de Espalda CE YM Hit-Air - Estandar
+  PAD-BACK-YMCV    Protector de Espalda CE YM con Funda Velcro Hit-Air - Estandar
+  PAD-CHEST-ASC    Protector de Pecho CE ASC Hit-Air (Par) - Estandar
+  PAD-CHEST-HC     Protector de Pecho HC Hit-Air (Par) - Estandar
+  TOOL-SET         Set de Herramientas Key Box Tipo B Hit-Air - Estandar
