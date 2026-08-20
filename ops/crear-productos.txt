@@ -1,0 +1,12 @@
+Login OK
+
+Bodega destino: Bodega Principal (sloc_01KZXNX7PWYTJZE1KVASB4B76M)
+
+[DRY] PAD-BACK-YM -> Protector de Espalda CE YM Hit-Air | canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] | cats=['Accesorios Moto'] | 6 imgs | $200000
+[DRY] PAD-BACK-YMCV -> Protector de Espalda CE YM con Funda Velcro Hit-Air | canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] | cats=['Accesorios Moto'] | 6 imgs | $200000
+[DRY] PAD-CHEST-ASC -> Protector de Pecho CE ASC Hit-Air (Par) | canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] | cats=['Accesorios Moto'] | 6 imgs | $200000
+[DRY] PAD-CHEST-HC -> Protector de Pecho HC Hit-Air (Par) | canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] | cats=['Accesorios Moto'] | 6 imgs | $200000
+[DRY] CONN-HOLDER -> Soporte de Conector Tipo Hebilla Hit-Air | canales=['Hit-Air Colombia', 'Venta Directa (Mostrador y Mayorista)'] | cats=['Accesorios Moto'] | 3 imgs | $200000
+[DRY] TOOL-SET -> Set de Herramientas Key Box Tipo B Hit-Air | canales=['Hit-Air Colombia', 'TIENDA EKIVIBE COLOMBIA', 'Venta Directa (Mostrador y Mayorista)'] | cats=['Accesorios Moto', 'Repuestos y Accesorios Hit-Air'] | 2 imgs | $200000
+
+=== VERIFICACION ===
