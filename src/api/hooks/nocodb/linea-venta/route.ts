@@ -70,7 +70,7 @@ async function asignarCosto(lineaId: number) {
   const linea = await nocodb(`/api/v2/tables/${T_LINEAS}/records/${lineaId}`)
 
   // Un costo ya puesto no se pisa: puede ser un ajuste deliberado.
-  if (Number(linea.costo_unitario_venta) > 0) {
+  if (linea.costo_unitario_venta != null && Number(linea.costo_unitario_venta) > 0) {
     return { linea_id: lineaId, aplicado: false, razon: "ya tiene costo" }
   }
   if (!linea.productos_id) {
@@ -94,9 +94,16 @@ async function asignarCosto(lineaId: number) {
   return { linea_id: lineaId, aplicado: true, sku: prod.sku, costo }
 }
 
-/** Lineas de venta sin costo, para recoger las de una edicion en lote. */
+/**
+ * Lineas de venta sin costo.
+ *
+ * El filtro es "blank", no "eq,0": el campo llega NULL, y eq,0 no lo detecta
+ * (devuelve cero resultados en silencio). Esto tambien recoge las lineas que
+ * quedaron sin costear porque el webhook disparo en el insert, antes de que
+ * se estableciera el enlace al producto.
+ */
 async function pendientes(excluir: number): Promise<number[]> {
-  const where = encodeURIComponent("(costo_unitario_venta,eq,0)")
+  const where = encodeURIComponent("(costo_unitario_venta,blank)")
   const res = await nocodb(
     `/api/v2/tables/${T_LINEAS}/records?where=${where}&limit=50`
   )
