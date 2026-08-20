@@ -34,8 +34,10 @@ const EKIVIBES_CHANNEL_NAME = "TIENDA EKIVIBE COLOMBIA";
 const HITAIR_CHANNEL_NAME = "Hit-Air Colombia";
 const BODEGA_NOMBRE = "Bodega Principal";
 const SKU = "KEY-BALL-B";
-const IMAGE_URL =
+const IMAGE_MAIN =
   "https://hitair-colombia-storefront-production.up.railway.app/product-details/keyball-set-b-main.jpg";
+const IMAGE_KEYBOX =
+  "https://hitair-colombia-storefront-production.up.railway.app/product-details/keyball-set-b-keybox-es.jpg";
 
 // PVP = Costo NETO x 2.2 (misma fórmula usada en seed-hitair-colombia.ts:
 // PVP = Costo NETO x 2.2, precio distribuidor = Costo NETO x 1.45).
@@ -52,17 +54,20 @@ const DESCRIPTION =
   "del chaleco o chaqueta airbag. Reemplaza el conjunto llave-hebilla cuando se daña, se pierde o se " +
   "desgasta por el uso. Compatible con los chalecos y chaquetas Hit-Air de equitación y motociclismo " +
   "que usan el sistema de hebilla (no incluye el cable en espiral, que se vende por separado).\n\n" +
+  "¿Dónde se conecta? La llave de bola se inserta en la Key Box (caja de llave) montada en la parte " +
+  "trasera/superior del chaleco o chaqueta, entre los broches de sujeción. Al insertarla queda firme " +
+  "dentro del mecanismo; si el usuario cae y el cable en espiral hace tensión, la llave se libera de la " +
+  "Key Box y activa el inflado del airbag.\n\n" +
   "Modo de uso:\n" +
   "1. Retira el conjunto llave-hebilla dañado del extremo del cable en espiral.\n" +
   "2. Encaja la nueva hebilla conectora en el mismo punto de anclaje del cable.\n" +
-  "3. Verifica que la llave de bola quede firme y bien insertada en el mecanismo de activación antes de cada salida.\n" +
+  "3. Inserta la llave de bola en la Key Box del chaleco/chaqueta hasta sentirla firme (ver foto de referencia).\n" +
   "4. Haz una prueba de tensión suave para confirmar que el sistema se libera correctamente ante una caída.";
 
 export default async function createKeyballSetB({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
   const fulfillmentModuleService = container.resolve(Modules.FULFILLMENT);
-  const productModuleService = container.resolve(Modules.PRODUCT);
 
   // 0. Guard: aborta si el SKU ya existe (evita duplicados).
   const { data: existentes } = await query.graph({
@@ -141,8 +146,8 @@ export default async function createKeyballSetB({ container }: ExecArgs) {
           category_ids: categoryIds,
           weight: 40,
           shipping_profile_id: shippingProfile.id,
-          thumbnail: IMAGE_URL,
-          images: [{ url: IMAGE_URL }],
+          thumbnail: IMAGE_MAIN,
+          images: [{ url: IMAGE_MAIN }, { url: IMAGE_KEYBOX }],
           options: [{ title: "Presentación", values: ["Estándar"] }],
           variants: [
             {
