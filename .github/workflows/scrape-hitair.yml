@@ -1,0 +1,21 @@
+name: Scrape Hit-Air
+on:
+  workflow_dispatch:
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ops-output
+      - name: Scrape
+        run: python3 scripts/scrape_hitair.py || true
+      - name: Publicar
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A ops/
+          git commit -m "ops: scrape hit-air $(date -u +%FT%TZ)" || true
+          git push origin ops-output
