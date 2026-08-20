@@ -1,0 +1,51 @@
+Login OK
+
+InventoryItems: 30   |   SKUs en catalogo: 30
+
+[DRY] VH-NIN-XS        'Chaleco Airbag VH Ninos - XS'  ->  'Chaleco Airbag VH Niños - XS'
+[DRY] MLV-NIN-2XS      'Chaleco Airbag MLV3-H Ninos - 2XS'  ->  'Chaleco Airbag MLV3-H Niños - 2XS'
+[DRY] CO2-60CC         'Cartucho de CO2 Hit-Air 60cc'  ->  'Cartucho de CO2 Hit-Air 60cc - Default variant'
+[DRY] CO2-50CC         'Cartucho de CO2 Hit-Air 50cc'  ->  'Cartucho de CO2 Hit-Air 50cc - Default variant'
+[DRY] KEY-RESIN        'Llave de Resina Tipo B Hit-Air'  ->  'Llave de Resina Tipo B Hit-Air Ninos - Default variant'
+[DRY] WIRE-COIL-MOTO   'Cable en Espiral Hit-Air (Motociclismo) - Estandar'  ->  'Cable en Espiral Hit-Air (Motociclismo) - Estándar'
+[DRY] KEY-BALL-B       'Llave de Bola con Conector Tipo Hebilla (Tipo B) Hit-Air - Estandar'  ->  'Llave de Bola con Conector Tipo Hebilla (Tipo B) Hit-Air - Estándar'
+[DRY] PAD-BACK-YM      'Estandar'  ->  'Protector de Espalda CE YM Hit-Air - Estandar'
+[DRY] PAD-BACK-YMCV    'Estandar'  ->  'Protector de Espalda CE YM con Funda Velcro Hit-Air - Estandar'
+[DRY] PAD-CHEST-ASC    'Estandar'  ->  'Protector de Pecho CE ASC Hit-Air (Par) - Estandar'
+[DRY] PAD-CHEST-HC     'Estandar'  ->  'Protector de Pecho HC Hit-Air (Par) - Estandar'
+[DRY] CONN-HOLDER      'Estandar'  ->  'Soporte de Conector Tipo Hebilla Hit-Air - Estandar'
+[DRY] TOOL-SET         'Estandar'  ->  'Set de Herramientas Key Box Tipo B Hit-Air - Estandar'
+
+ya correctos=17  cambiados=13  huerfanos=0
+
+=== ESTADO FINAL ===
+  CO2-50CC         Cartucho de CO2 Hit-Air 50cc
+  CO2-60CC         Cartucho de CO2 Hit-Air 60cc
+  CONN-HOLDER      Estandar
+  EU7-BLK-M        Chaqueta Hit-Air EU7 Touring - Negro / M
+  EU7-GRY-L        Chaqueta Hit-Air EU7 Touring - Gris Oscuro / L
+  EU7-GRY-M        Chaqueta Hit-Air EU7 Touring - Gris Oscuro / M
+  HDS-MS-BLK-M     Chaqueta Hit-Air HDS-MS (Negro) - M
+  KEY-BALL-B       Llave de Bola con Conector Tipo Hebilla (Tipo B) Hit-Air - Estandar
+  KEY-RESIN        Llave de Resina Tipo B Hit-Air
+  LANYARD-L        Lanyard Bungee All-in-One Hit-Air - L
+  LANYARD-S        Lanyard Bungee All-in-One Hit-Air - S
+  LANYARD-XS       Lanyard Bungee All-in-One Hit-Air - XS
+  MLV-ADU-L        Chaleco Airbag MLV3-H (Juvenil / Adulto) - L
+  MLV-ADU-M        Chaleco Airbag MLV3-H (Juvenil / Adulto) - M
+  MLV-ADU-S        Chaleco Airbag MLV3-H (Juvenil / Adulto) - S
+  MLV-ADU-XS       Chaleco Airbag MLV3-H (Juvenil / Adulto) - XS
+  MLV-NIN-2XS      Chaleco Airbag MLV3-H Ninos - 2XS
+  MLV2-RC-BLK-L    Chaleco Hit-Air MLV2-RC (Negro) - L
+  MLV2-RC-BLK-M    Chaleco Hit-Air MLV2-RC (Negro) - M
+  MX9-BLK-M        Chaqueta Hit-Air MX-9 (Negro) - M
+  PAD-BACK-YM      Estandar
+  PAD-BACK-YMCV    Estandar
+  PAD-CHEST-ASC    Estandar
+  PAD-CHEST-HC     Estandar
+  TOOL-SET         Estandar
+  VH-ADU-L         Chaleco Airbag VH (Juvenil / Adulto) - L
+  VH-ADU-M         Chaleco Airbag VH (Juvenil / Adulto) - M
+  VH-ADU-S         Chaleco Airbag VH (Juvenil / Adulto) - S
+  VH-NIN-XS        Chaleco Airbag VH Ninos - XS
+  WIRE-COIL-MOTO   Cable en Espiral Hit-Air (Motociclismo) - Estandar
