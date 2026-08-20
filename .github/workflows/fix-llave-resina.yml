@@ -1,0 +1,26 @@
+name: Fix Llave Resina
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "1 = simulacion"
+        required: false
+        default: "1"
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ops-output
+      - env:
+          MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
+          MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: python3 scripts/fix_llave_resina.py > /tmp/o.txt 2>&1 || true
+      - run: |
+          mkdir -p ops && cp /tmp/o.txt ops/llave-resina.txt
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add -A ops/; git commit -m "ops: llave resina" || true; git push origin ops-output
