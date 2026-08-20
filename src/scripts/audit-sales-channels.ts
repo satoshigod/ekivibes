@@ -26,16 +26,24 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 function segmento(skus: string[]): string {
   const moto = /^(MLV2|HDS|MX9|EU7|WIRE)/i
-  const equi = /^(VH|MLV-|CO2|KEY|LANYARD)/i
+  const equi = /^(VH|MLV-|KEY|LANYARD)/i
+  // CO2 es accesorio universal Hit-Air (recarga chalecos y chaquetas de
+  // ambos segmentos) — vinculado a Ekivibes Y Hit-Air Colombia desde el
+  // 20-ago-2026 a proposito. No cuenta para el aviso de MEZCLADO.
+  const compartido = /^CO2/i
   let m = 0
   let e = 0
+  let c = 0
   for (const s of skus) {
     if (moto.test(s)) m++
     else if (equi.test(s)) e++
+    else if (compartido.test(s)) c++
   }
-  if (m && e) return `MEZCLADO (${m} moto, ${e} equitacion)`
-  if (m) return `moto (${m} variantes)`
-  if (e) return `equitacion (${e} variantes)`
+  const extra = c ? ` + ${c} compartido` : ""
+  if (m && e) return `MEZCLADO (${m} moto, ${e} equitacion${extra})`
+  if (m) return `moto (${m} variantes${extra})`
+  if (e) return `equitacion (${e} variantes${extra})`
+  if (c) return `compartido (${c} variantes)`
   return "sin clasificar"
 }
 
