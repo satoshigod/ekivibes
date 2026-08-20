@@ -28,6 +28,20 @@ const T_MOVIMIENTOS = process.env.NOCODB_TABLE_MOVIMIENTOS || ""
 
 const LOG = "[medusa->nocodb:pedido]"
 
+class NocodbError extends Error {
+  status: number
+  body: any
+  constructor(status: number, path: string, bodyText: string) {
+    super(`NocoDB ${status} en ${path}: ${bodyText}`)
+    this.status = status
+    try {
+      this.body = JSON.parse(bodyText)
+    } catch {
+      this.body = null
+    }
+  }
+}
+
 async function nocodb(path: string, init?: { method?: string; body?: unknown }) {
   const res = await fetch(`${NOCODB_URL}${path}`, {
     method: init?.method || "GET",
@@ -35,7 +49,7 @@ async function nocodb(path: string, init?: { method?: string; body?: unknown }) 
     body: init?.body ? JSON.stringify(init.body) : undefined,
   })
   if (!res.ok) {
-    throw new Error(`NocoDB ${res.status} en ${path}: ${await res.text()}`)
+    throw new NocodbError(res.status, path, await res.text())
   }
   return res.json()
 }
@@ -161,23 +175,38 @@ export const mirrorOrderToNocodbStep = createStep(
     }
 
     // ---- cabecera del pedido
-    const pedido = await nocodb(`/api/v2/tables/${T_PEDIDOS}/records`, {
-      method: "POST",
-      body: {
-        numero_pedido: String(order.display_id ?? order.id),
-        medusa_order_id: order.id,
-        fecha_pedido: new Date(order.created_at).toISOString().slice(0, 19).replace("T", " "),
-        marca,
-        canal,
-        estado_pedido: "Pagado",
-        estado_pago: "Aprobado",
-        metodo_pago: "Wompi",
-        subtotal: Number(order.item_total ?? order.subtotal ?? 0),
-        costo_envio: Number(order.shipping_total ?? 0),
-        total: Number(order.total ?? 0),
-        notas: `Espejado desde Medusa. Canal: ${nombreCanal || "?"}`,
-      },
-    })
+    // Si dos ejecuciones concurrentes llegan aqui a la vez (reintento del
+    // evento, dos instancias, etc.), el SELECT de idempotencia de arriba
+    // pudo pasar en ambas antes de que cualquiera insertara. El indice
+    // unico en medusa_order_id es quien realmente decide: si el insert
+    // choca, ya existe el pedido y se trata como exito, no como error.
+    let pedido
+    try {
+      pedido = await nocodb(`/api/v2/tables/${T_PEDIDOS}/records`, {
+        method: "POST",
+        body: {
+          numero_pedido: String(order.display_id ?? order.id),
+          medusa_order_id: order.id,
+          fecha_pedido: new Date(order.created_at).toISOString().slice(0, 19).replace("T", " "),
+          marca,
+          canal,
+          estado_pedido: "Pagado",
+          estado_pago: "Aprobado",
+          metodo_pago: "Wompi",
+          subtotal: Number(order.item_total ?? order.subtotal ?? 0),
+          costo_envio: Number(order.shipping_total ?? 0),
+          total: Number(order.total ?? 0),
+          notas: `Espejado desde Medusa. Canal: ${nombreCanal || "?"}`,
+        },
+      })
+    } catch (err) {
+      if (err instanceof NocodbError && err.body?.error === "FIELD_UNIQUE_CONSTRAINT_VIOLATION") {
+        console.log(`${LOG} colision de indice unico para ${order.id}, ya existia`)
+        const r: Resultado = { espejado: false, razon: "ya existe (colision de indice)" }
+        return new StepResponse(r, r)
+      }
+      throw err
+    }
     const pedidoId: number = pedido.Id
 
     const colPedidos = await columnas(T_PEDIDOS)
