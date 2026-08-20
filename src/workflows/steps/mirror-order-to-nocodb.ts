@@ -47,6 +47,24 @@ async function buscarUno(tabla: string, campo: string, valor: string) {
   return (res.list || [])[0] || null
 }
 
+/**
+ * Igual que buscarUno pero con dos condiciones (AND). Se usa para el cliente:
+ * Medusa permite dos Customer distintos con el mismo email, y con dos marcas
+ * un correo que compra en ambas no debe fusionarse en el mismo registro de
+ * NocoDB solo por coincidir el email. La combinacion email+marca es la
+ * identidad real.
+ */
+async function buscarUnoCompuesto(
+  tabla: string,
+  condiciones: [string, string][]
+) {
+  const where = encodeURIComponent(
+    condiciones.map(([campo, valor]) => `(${campo},eq,${valor})`).join("~and")
+  )
+  const res = await nocodb(`/api/v2/tables/${tabla}/records?where=${where}&limit=1`)
+  return (res.list || [])[0] || null
+}
+
 async function columnas(tabla: string): Promise<Record<string, string>> {
   const meta = await nocodb(`/api/v2/meta/tables/${tabla}`)
   const out: Record<string, string> = {}
@@ -103,11 +121,16 @@ export const mirrorOrderToNocodbStep = createStep(
     const marca = marcaDesdeCanal(nombreCanal)
     const canal = canalDesdeNombre(nombreCanal)
 
-    // ---- cliente: se reutiliza por email para no fragmentar el historial
+    // ---- cliente: se reutiliza por email+marca para no fragmentar el
+    // historial dentro de una marca, sin fusionar dos personas distintas
+    // que comparten correo en marcas diferentes (ver buscarUnoCompuesto).
     let clienteId: number | null = null
     const email: string | undefined = order.email
     if (T_CLIENTES && email) {
-      const hallado = await buscarUno(T_CLIENTES, "email", email)
+      const hallado = await buscarUnoCompuesto(T_CLIENTES, [
+        ["email", email],
+        ["marca", marca],
+      ])
       if (hallado) {
         clienteId = hallado.Id
       } else {
