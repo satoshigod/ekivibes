@@ -5,10 +5,11 @@ Fotos verificadas: 2/2
 descripcion: 121 -> 88 palabras
 galeria:     1 -> 2 fotos
 
-[DRY] sin cambios
+-> actualizado
 
 === ESTADO FINAL ===
   titulo:      Llave de Resina Tipo B Hit-Air Ninos
-  subtitulo:   Herramienta de rearmado original para sistema airbag Hit-Air
-  descripcion: 121 palabras
+  subtitulo:   Repuesto original Hit-Air para jinetes de poco peso
+  descripcion: 88 palabras
   foto: https://ekivibes-storefront-production.up.railway.app/product-details/resin-keyball-main.jpg
+  foto: https://ekivibes-storefront-production.up.railway.app/product-details/resin-keyball-02.jpg
