@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Normaliza el titulo de TODOS los InventoryItem al patron "<Producto> - <Variante>".
+Normaliza el titulo de los InventoryItem de los 6 productos creados el
+2026-08-20, al patron "<Producto> - <Variante>".
 
 Los productos creados via Admin API heredan como titulo del InventoryItem solo
 el titulo de la variante ("Estandar"), lo que deja el listado de inventario del
@@ -16,6 +17,11 @@ import urllib.request
 
 BASE = "https://ekivibes-production.up.railway.app"
 DRY_RUN = os.environ.get("DRY_RUN", "") == "1"
+
+# Alcance CERRADO: solo estos 6. El resto del inventario ya tiene el nombre
+# correcto y no se toca.
+SOLO = {"PAD-BACK-YM", "PAD-BACK-YMCV", "PAD-CHEST-ASC",
+        "PAD-CHEST-HC", "CONN-HOLDER", "TOOL-SET"}
 
 
 def req(method, path, token=None, body=None):
@@ -43,8 +49,12 @@ for p in req("GET", "/admin/products?limit=200&fields=id,title,*variants", tok)[
         if v.get("sku"):
             esperado[v["sku"]] = "%s - %s" % (p["title"], v.get("title") or "Estandar")
 
-items = req("GET", "/admin/inventory-items?limit=200&fields=id,sku,title", tok)["inventory_items"]
-print("InventoryItems: %d   |   SKUs en catalogo: %d\n" % (len(items), len(esperado)))
+todos = req("GET", "/admin/inventory-items?limit=200&fields=id,sku,title", tok)["inventory_items"]
+items = [i for i in todos if i.get("sku") in SOLO]
+print("InventoryItems en total: %d   |   dentro del alcance: %d\n" % (len(todos), len(items)))
+if len(items) != len(SOLO):
+    faltan = SOLO - {i.get("sku") for i in items}
+    print("[!] no se encontraron: %s\n" % faltan)
 
 cambiados = ok = huerfanos = 0
 for it in items:
@@ -70,7 +80,8 @@ for it in items:
 
 print("\nya correctos=%d  cambiados=%d  huerfanos=%d" % (ok, cambiados, huerfanos))
 
-print("\n=== ESTADO FINAL ===")
+print("\n=== ESTADO FINAL (solo los 6) ===")
 for it in sorted(req("GET", "/admin/inventory-items?limit=200&fields=id,sku,title", tok)["inventory_items"],
                  key=lambda x: x.get("sku") or ""):
-    print("  %-16s %s" % (it.get("sku"), it.get("title")))
+    if it.get("sku") in SOLO:
+        print("  %-16s %s" % (it.get("sku"), it.get("title")))
