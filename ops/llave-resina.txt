@@ -4,10 +4,12 @@ Login OK
   titulo actual : 'Llave de Resina Tipo B Hit-Air Ninos'
   titulo nuevo  : 'Llave de Resina Tipo B Hit-Air Niños'
   descripcion   : se corrige 'ninos' -> 'ninos' con enye
+  -> actualizado
 
 --- BACKEND (inventory item) ---
   titulo actual : 'Llave de Resina Tipo B Hit-Air'
   titulo nuevo  : 'Llave de Resina Tipo B Hit-Air NINOS'
+  -> actualizado
 
 === INFORME: otros productos infantiles (solo lectura) ===
   producto : 'Chaleco Airbag VH Niños'
@@ -16,6 +18,6 @@ Login OK
   producto : 'Chaleco Airbag MLV3-H Niños'
      enye en el titulo: si
      sku=MLV-NIN-2XS    inventario='Chaleco Airbag MLV3-H Ninos - 2XS'  ascii=si
-  producto : 'Llave de Resina Tipo B Hit-Air Ninos'
-     enye en el titulo: NO
-     sku=KEY-RESIN      inventario='Llave de Resina Tipo B Hit-Air'  ascii=si
+  producto : 'Llave de Resina Tipo B Hit-Air Niños'
+     enye en el titulo: si
+     sku=KEY-RESIN      inventario='Llave de Resina Tipo B Hit-Air NINOS'  ascii=si
