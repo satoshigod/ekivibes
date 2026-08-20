@@ -1,0 +1,26 @@
+Login OK
+
+--- 1. Descripciones homogeneizadas ---
+[DRY] hitair-mlv2-rc-vest-black        20 -> 88 palabras
+[DRY] hitair-hds-ms-jacket-black       14 -> 84 palabras
+[DRY] hitair-mx9-jacket-black          15 -> 85 palabras
+
+--- 2. Categoria de los cartuchos de CO2 ---
+[DRY] cartucho-de-co2-hit-air-50cc     ['Repuestos y Accesorios Hit-Air'] -> ['Accesorios Moto', 'Repuestos y Accesorios Hit-Air']
+[DRY] cartucho-de-co2-hit-air-60cc     ['Repuestos y Accesorios Hit-Air'] -> ['Accesorios Moto', 'Repuestos y Accesorios Hit-Air']
+
+=== ESTADO FINAL DEL CANAL HIT-AIR COLOMBIA ===
+  cartucho-de-co2-hit-air-50cc                   83 palabras  ['Repuestos y Accesorios Hit-Air']
+  cartucho-de-co2-hit-air-60cc                   79 palabras  ['Repuestos y Accesorios Hit-Air']
+  hitair-coiled-wire-moto                        87 palabras  ['Accesorios Moto']
+  hitair-mlv2-rc-vest-black                      20 palabras  ['Chaquetas y Chalecos Moto']
+  hitair-hds-ms-jacket-black                     14 palabras  ['Chaquetas y Chalecos Moto']
+  hitair-mx9-jacket-black                        15 palabras  ['Chaquetas y Chalecos Moto']
+  hitair-eu7-touring-jacket                      89 palabras  ['Chaquetas y Chalecos Moto']
+  llave-bola-conector-hebilla-tipo-b-hitair      83 palabras  ['Repuestos y Accesorios Hit-Air', 'Accesorios Moto']
+  protector-espalda-ce-ym-hitair                 90 palabras  ['Accesorios Moto']
+  protector-espalda-ce-ym-funda-velcro-hitair    76 palabras  ['Accesorios Moto']
+  protector-pecho-ce-asc-hitair                  79 palabras  ['Accesorios Moto']
+  protector-pecho-hc-hitair                      88 palabras  ['Accesorios Moto']
+  soporte-conector-tipo-hebilla-hitair           87 palabras  ['Accesorios Moto']
+  set-herramientas-key-box-tipo-b-hitair         80 palabras  ['Repuestos y Accesorios Hit-Air', 'Accesorios Moto']
