@@ -1,0 +1,13 @@
+name: Recon Medusa
+on:
+  workflow_dispatch:
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recon
+        env:
+          MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
+          MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
+        run: python3 scripts/recon_medusa.py
