@@ -5,20 +5,43 @@ Publishable keys encontradas por canal:
 ==================================================================
 TIENDA: Ekivibes
 ==================================================================
+  region=reg_01KZPA5VQ4345MB8FP453A5EED  productos totales en esta tienda=10
+  Set de Herramientas Key Box Tipo B Hit-Air
+     sku=['TOOL-SET']  precio=200000  cats=['Repuestos y Accesorios Hit-Air', 'Accesorios Moto']
+     imagenes=2  rotas=0 
 
 ==================================================================
 TIENDA: Hit-Air Colombia
 ==================================================================
+  region=reg_01KZPA5VQ4345MB8FP453A5EED  productos totales en esta tienda=14
+  Protector de Espalda CE YM Hit-Air
+     sku=['PAD-BACK-YM']  precio=200000  cats=['Accesorios Moto']
+     imagenes=6  rotas=0 
+  Protector de Espalda CE YM con Funda Velcro Hit-Air
+     sku=['PAD-BACK-YMCV']  precio=200000  cats=['Accesorios Moto']
+     imagenes=6  rotas=0 
+  Protector de Pecho CE ASC Hit-Air (Par)
+     sku=['PAD-CHEST-ASC']  precio=200000  cats=['Accesorios Moto']
+     imagenes=6  rotas=0 
+  Protector de Pecho HC Hit-Air (Par)
+     sku=['PAD-CHEST-HC']  precio=200000  cats=['Accesorios Moto']
+     imagenes=6  rotas=0 
+  Soporte de Conector Tipo Hebilla Hit-Air
+     sku=['CONN-HOLDER']  precio=200000  cats=['Accesorios Moto']
+     imagenes=3  rotas=0 
+  Set de Herramientas Key Box Tipo B Hit-Air
+     sku=['TOOL-SET']  precio=200000  cats=['Repuestos y Accesorios Hit-Air', 'Accesorios Moto']
+     imagenes=2  rotas=0 
 
 ==================================================================
 CONTROL DE FUGA ENTRE CANALES
 ==================================================================
-  ERROR  PAD-BACK-YM      esperado=['Hit-Air Colombia'] real=[]
-  ERROR  PAD-BACK-YMCV    esperado=['Hit-Air Colombia'] real=[]
-  ERROR  PAD-CHEST-ASC    esperado=['Hit-Air Colombia'] real=[]
-  ERROR  PAD-CHEST-HC     esperado=['Hit-Air Colombia'] real=[]
-  ERROR  CONN-HOLDER      esperado=['Hit-Air Colombia'] real=[]
-  ERROR  TOOL-SET         esperado=['Hit-Air Colombia', 'TIENDA EKIVIBE COLOMBIA'] real=[]
+  OK     PAD-BACK-YM      visible en ['Hit-Air Colombia']
+  OK     PAD-BACK-YMCV    visible en ['Hit-Air Colombia']
+  OK     PAD-CHEST-ASC    visible en ['Hit-Air Colombia']
+  OK     PAD-CHEST-HC     visible en ['Hit-Air Colombia']
+  OK     CONN-HOLDER      visible en ['Hit-Air Colombia']
+  OK     TOOL-SET         visible en ['Hit-Air Colombia', 'TIENDA EKIVIBE COLOMBIA']
 
 Equitacion no debe aparecer en Hit-Air ni viceversa.
-RESULTADO: 6 PROBLEMAS
+RESULTADO: TODO CORRECTO
