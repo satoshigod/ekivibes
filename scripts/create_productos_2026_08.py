@@ -38,13 +38,17 @@ DRY_RUN = os.environ.get("DRY_RUN", "") == "1"
 #   PVP = costo NETO x 2.2   |   precio distribuidor = costo NETO x 1.45
 # Los valores de abajo se calculan desde el costo neto que entregue Ivan.
 # ---------------------------------------------------------------------------
+# PROVISIONAL 2026-08-20: Ivan pidio cargar los 6 a $200.000 COP para poder ver
+# los productos en las tiendas. NO son precios reales. Reemplazar por
+# costo NETO x 2.2 en cuanto lleguen los costos de fabrica.
+PRECIO_PROVISIONAL = 200000
 PRECIOS = {
-    "PAD-BACK-YM": None,
-    "PAD-BACK-YMCV": None,
-    "PAD-CHEST-ASC": None,
-    "PAD-CHEST-HC": None,
-    "CONN-HOLDER": None,
-    "TOOL-SET": None,
+    "PAD-BACK-YM": PRECIO_PROVISIONAL,
+    "PAD-BACK-YMCV": PRECIO_PROVISIONAL,
+    "PAD-CHEST-ASC": PRECIO_PROVISIONAL,
+    "PAD-CHEST-HC": PRECIO_PROVISIONAL,
+    "CONN-HOLDER": PRECIO_PROVISIONAL,
+    "TOOL-SET": PRECIO_PROVISIONAL,
 }
 
 PRODUCTOS = [
