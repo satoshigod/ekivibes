@@ -1,0 +1,20 @@
+name: Diag Categorias
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ops-output
+      - env:
+          MEDUSA_EMAIL: ${{ secrets.MEDUSA_ADMIN_EMAIL }}
+          MEDUSA_PASSWORD: ${{ secrets.MEDUSA_ADMIN_PASSWORD }}
+        run: python3 scripts/diag_cat.py > /tmp/o.txt 2>&1 || true
+      - run: |
+          mkdir -p ops && cp /tmp/o.txt ops/diag-categorias.txt
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add -A ops/; git commit -m "ops: diag categorias" || true; git push origin ops-output
