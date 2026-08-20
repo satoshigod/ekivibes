@@ -29,6 +29,24 @@ module.exports = defineConfig({
             resolve: "@medusajs/medusa/workflow-engine-redis",
             options: { redis: { url: process.env.REDIS_URL } },
           },
+          {
+            // Sin esto Medusa cae al proveedor en memoria, valido solo para
+            // una instancia. El endpoint que ajusta inventario desde el
+            // puente NocoDB (src/api/hooks/nocodb/movimiento/route.ts) y las
+            // reservas del checkout comparten el mismo inventory_item, y sin
+            // lock distribuido pueden pisarse entre si.
+            resolve: "@medusajs/medusa/locking",
+            options: {
+              providers: [
+                {
+                  resolve: "@medusajs/medusa/locking-redis",
+                  id: "locking-redis",
+                  is_default: true,
+                  options: { redisUrl: process.env.REDIS_URL },
+                },
+              ],
+            },
+          },
         ]
       : []),
     {
