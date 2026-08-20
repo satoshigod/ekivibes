@@ -1,0 +1,103 @@
+======================================================================
+Chaleco Airbag VH (Juvenil / Adulto)  [prod_01KZPGA9173EFNVPTRM4ZFKHS2]
+  handle: chaleco-airbag-vh-juvenil-adulto
+  skus: ['VH-ADU-S', 'VH-ADU-L', 'VH-ADU-M']
+  THUMBNAIL: SIN-IMAGEN           None
+    img ROTA (localhost)       id=islgw  http://localhost:9000/static/1786388036327-6192e77bf2c8bcae797d5411369c7d76%20(2).jpg
+    img ROTA (localhost)       id=sa6bu4  http://localhost:9000/static/1786388036328-9787a8ff5e88b6cca68f7c4906743141%20(2).jpg
+======================================================================
+Chaleco Airbag MLV3-H (Juvenil / Adulto)  [prod_01KZPGKJGYE9A7MCANTS6V0Z97]
+  handle: chaleco-airbag-mlv3-h-juvenil-adulto
+  skus: ['MLV-ADU-XS', 'MLV-ADU-S', 'MLV-ADU-M', 'MLV-ADU-L']
+  THUMBNAIL: ROTA (localhost)     http://localhost:9000/static/1786388269401-b489792d7b2a98f31ae5eaef1243828a.jpg
+    img ROTA (localhost)       id=img_01KZPGKJGY01X7DPPNTVRBH3QG  http://localhost:9000/static/1786388269401-b489792d7b2a98f31ae5eaef1243828a.jpg
+    img ROTA (localhost)       id=img_01KZPGKJGYMVED7KXKJE62CEWH  http://localhost:9000/static/1786388269401-2a8b4ee7d8faad142a7e5ff23fd21ffe.jpg
+======================================================================
+Chaleco Airbag VH Niños  [prod_01KZPGZYT740ZCEQBV4WDZ2ZXT]
+  handle: chaleco-airbag-vh-ninos
+  skus: ['VH-NIN-XS']
+  THUMBNAIL: ROTA (localhost)     http://localhost:9000/static/1786388675230-f2631e515e90e4f92a41d8b934506abebb95b5f29a988b4233a539a6be655929%20(1).jpg
+    img ROTA (localhost)       id=img_01KZPGZYT7B4NY4R8C517Y72BR  http://localhost:9000/static/1786388675230-f2631e515e90e4f92a41d8b934506abebb95b5f29a988b4233a539a6be655929%20(1).jpg
+    img ROTA (localhost)       id=img_01KZPGZYT7J1XYDP5MJ0GGWCRW  http://localhost:9000/static/1786388675231-2e50f9836503cbc5fea69c8967e434239c5833ea88538826d26b1f675a4dfddf%20(1).jpg
+======================================================================
+Chaleco Airbag MLV3-H Niños  [prod_01KZPH5JBJCFTASQ5EMVNQZMDB]
+  handle: chaleco-airbag-mlv3-h-ninos
+  skus: ['MLV-NIN-2XS']
+  THUMBNAIL: ROTA (localhost)     http://localhost:9000/static/1786388858935-b3d1ccdbe3ea95299606b15d140659b6fc71f9a4d6353099f58bfedddc5486a3.jpg
+    img ROTA (localhost)       id=img_01KZPH5JBJWTJ21CCPXHNPBP7C  http://localhost:9000/static/1786388858935-b3d1ccdbe3ea95299606b15d140659b6fc71f9a4d6353099f58bfedddc5486a3.jpg
+    img ROTA (localhost)       id=img_01KZPH5JBKNFE25K3EV955886P  http://localhost:9000/static/1786388858936-5c723791746320b4f741dd7c33d37503c08853708a5503653152ad29c6b1638a.jpg
+======================================================================
+Cartucho de CO2 Hit-Air 50cc  [prod_01KZPHDZ593J0SZ3M5VAKJAX7Q]
+  handle: cartucho-de-co2-hit-air-50cc
+  skus: ['CO2-50CC']
+  THUMBNAIL: ROTA (localhost)     http://localhost:9000/static/1786389134285-9d36060d2660a677f29350e6758d2aed2f98dae4ba9c9b8c129221ee61ce5466%20(2).jpg
+    img ROTA (localhost)       id=img_01KZPHDZ5AHTR5WVT9DKG7J5Y0  http://localhost:9000/static/1786389134285-9d36060d2660a677f29350e6758d2aed2f98dae4ba9c9b8c129221ee61ce5466%20(2).jpg
+======================================================================
+Cartucho de CO2 Hit-Air 60cc  [prod_01KZPHH7F517EDT95CY79CH1BR]
+  handle: cartucho-de-co2-hit-air-60cc
+  skus: ['CO2-60CC']
+  THUMBNAIL: ROTA (localhost)     http://localhost:9000/static/1786389241118-459055ed59c25a2b7db13a9a02977e949ba988211919e08b4d0e1353b16d57e1%20(1).jpg
+    img ROTA (localhost)       id=img_01KZPHH7F59HHE10DXQK9WEX4H  http://localhost:9000/static/1786389241118-459055ed59c25a2b7db13a9a02977e949ba988211919e08b4d0e1353b16d57e1%20(1).jpg
+======================================================================
+Llave de Resina Tipo B Hit-Air Ninos  [prod_01KZPHKFRVH25ZEC6ZJXRG7CTV]
+  handle: llave-de-resina-tipo-b-hit-air
+  skus: ['KEY-RESIN']
+  THUMBNAIL: ROTA (localhost)     http://localhost:9000/static/1786389315198-descarga.jpeg
+    img ROTA (localhost)       id=img_01KZPHKFRVEHH8DJRP126QWHD6  http://localhost:9000/static/1786389315198-descarga.jpeg
+======================================================================
+Lanyard Bungee All-in-One Hit-Air  [prod_01KZPHRBHC18CQ31VKF86MAQ6T]
+  handle: lanyard-bungee-all-in-one-hit-air
+  skus: ['LANYARD-S', 'LANYARD-L', 'LANYARD-XS']
+  THUMBNAIL: ROTA (localhost)     http://localhost:9000/static/1786389474702-descarga%20(1).jpeg
+    img ROTA (localhost)       id=img_01KZPHRBHD6BVD0FHCT8CVFNX2  http://localhost:9000/static/1786389474702-descarga%20(1).jpeg
+======================================================================
+Cable en Espiral Hit-Air (Motociclismo)  [prod_01M08WFE9HAMV4JW3XQ32T6EK7]
+  handle: hitair-coiled-wire-moto
+  skus: ['WIRE-COIL-MOTO']
+  THUMBNAIL: SIN-IMAGEN           None
+  GALERIA: (vacia)
+======================================================================
+Chaleco Hit-Air MLV2-RC (Negro)  [prod_01M08WFE9HFAQ3FBQQF074ZVMH]
+  handle: hitair-mlv2-rc-vest-black
+  skus: ['MLV2-RC-BLK-M', 'MLV2-RC-BLK-L']
+  THUMBNAIL: ok autohospedada     https://hitair-colombia-storefront-production.up.railway.app/product-details/mlv2-rc-main.jpg
+    img ok autohospedada       id=img_01M08Z58AWBV34CVDCZBAP7WBJ  https://hitair-colombia-storefront-production.up.railway.app/product-details/mlv2-rc-main.jpg
+    img ok autohospedada       id=img_01M08Z58AWWVSYJ71SQNA0XS57  https://hitair-colombia-storefront-production.up.railway.app/product-details/mlv2-rc-det2.jpg
+    img ok autohospedada       id=img_01M08Z58AWCNX7V3288TVPAWAQ  https://hitair-colombia-storefront-production.up.railway.app/product-details/mlv2-rc-det3.jpg
+    img ok autohospedada       id=img_01M08Z58AXTVCFW0TDY2W5893C  https://hitair-colombia-storefront-production.up.railway.app/product-details/mlv2-rc-det4.jpg
+======================================================================
+Chaqueta Hit-Air HDS-MS (Negro)  [prod_01M08WFE9HJ9E3E4KZZCG5CZVH]
+  handle: hitair-hds-ms-jacket-black
+  skus: ['HDS-MS-BLK-M']
+  THUMBNAIL: ok autohospedada     https://hitair-colombia-storefront-production.up.railway.app/product-details/hdsms-main.jpg
+    img ok autohospedada       id=img_01M0B3D2R2TQQ7PVXJ24DCEVHR  https://hitair-colombia-storefront-production.up.railway.app/product-details/hdsms-main.jpg
+    img ok autohospedada       id=img_01M0B3D2R3SHKSQERMDRS75Z88  https://hitair-colombia-storefront-production.up.railway.app/product-details/hdsms-back.jpg
+    img ok autohospedada       id=img_01M0B3D2R3NTT1RSYK6K0XZQ9J  https://hitair-colombia-storefront-production.up.railway.app/product-details/hdsms-keybox.jpg
+    img ok autohospedada       id=img_01M0B3D2R39W3SZPRFXCSVEZP1  https://hitair-colombia-storefront-production.up.railway.app/product-details/hdsms-keyboxcover.jpg
+======================================================================
+Chaqueta Hit-Air MX-9 (Negro)  [prod_01M08WFE9HNEJMCT35QXYRV53Y]
+  handle: hitair-mx9-jacket-black
+  skus: ['MX9-BLK-M']
+  THUMBNAIL: ok autohospedada     https://hitair-colombia-storefront-production.up.railway.app/product-details/mx9-main.jpg
+    img ok autohospedada       id=img_01M09AVTGT1MK9GC2E1GY4YP9Q  https://hitair-colombia-storefront-production.up.railway.app/product-details/mx9-main.jpg
+    img ok autohospedada       id=img_01M09AVTGVBQ0K3A6EMS5C480S  https://hitair-colombia-storefront-production.up.railway.app/product-details/mx9-det2.jpg
+    img ok autohospedada       id=img_01M09AVTGV6ZTACZCERMKNETSV  https://hitair-colombia-storefront-production.up.railway.app/product-details/mx9-det3.jpg
+    img ok autohospedada       id=img_01M09AVTGVWDXM7SB03NJGBT1G  https://hitair-colombia-storefront-production.up.railway.app/product-details/mx9-det4.jpg
+======================================================================
+Chaqueta Hit-Air EU7 Touring  [prod_01M08WFE9HX5VDXVVG2PY8Z77P]
+  handle: hitair-eu7-touring-jacket
+  skus: ['EU7-GRY-M', 'EU7-GRY-L', 'EU7-BLK-M']
+  THUMBNAIL: HOTLINK (hit-air.com) https://www.hit-air.com/archives/005/202508/3fee64138293dd48b3170a283cabd5a525b3e7268c822281db58b52b7c1b1d42.jpg
+    img HOTLINK (hit-air.com)  id=img_01M0A23YWECA2601TF7V63B0WV  https://www.hit-air.com/archives/005/202508/3fee64138293dd48b3170a283cabd5a525b3e7268c822281db58b52b7c1b1d42.jpg
+    img HOTLINK (hit-air.com)  id=img_01M0A23YWFAMFJM49ATDS3K051  https://www.hit-air.com/archives/005/202508/2fc8c5be69fb8682d37d18329c6c73402c4b8173e4998b7c899affb2107070a3.jpg
+    img HOTLINK (hit-air.com)  id=img_01M0A23YWFTFE3DEZA0D4HF3PZ  https://www.hit-air.com/archives/005/202508/62a200a62f3514e98e0686d20409faf51a1e042465a044cf8f16e62a7933a13b.jpg
+    img HOTLINK (hit-air.com)  id=img_01M0A23YWFC1CEYS69DYCR4GKX  https://www.hit-air.com/archives/005/202508/9d21c9e9114ee8230c9249c3b0c7b38d0403474df6b43b3f76d1d92afdcdfa51.jpg
+    img HOTLINK (hit-air.com)  id=img_01M0A23YWF9G7394QN2HC6X6R9  https://www.hit-air.com/archives/005/202508/c1a78db5b58072b9a538a0d6e24b450e49d8ed9c1655dba1dc6bc667968f7f00.jpg
+    img HOTLINK (hit-air.com)  id=img_01M0A23YWFBWZG65H2P71VX7VE  https://www.hit-air.com/archives/005/202508/3bea7f734dd875b74573dbb44c41273b804d808c6c92bba92fdecec51998d810.jpg
+======================================================================
+Llave de Bola con Conector Tipo Hebilla (Tipo B) Hit-Air  [prod_01M0FSQYJ53JQ3EBCHR9FR9ZWP]
+  handle: llave-bola-conector-hebilla-tipo-b-hitair
+  skus: ['KEY-BALL-B']
+  THUMBNAIL: ok autohospedada     https://hitair-colombia-storefront-production.up.railway.app/product-details/keyball-set-b-main.jpg
+    img ok autohospedada       id=img_01M0FSQYJ6Z5RT858SP1WDNP7Q  https://hitair-colombia-storefront-production.up.railway.app/product-details/keyball-set-b-main.jpg
+    img ok autohospedada       id=img_01M0FSQYJ6CBA0CSYN5A7EKFNR  https://hitair-colombia-storefront-production.up.railway.app/product-details/keyball-set-b-keybox-es.jpg
