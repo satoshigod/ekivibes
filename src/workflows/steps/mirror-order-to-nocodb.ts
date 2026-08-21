@@ -42,16 +42,75 @@ class NocodbError extends Error {
   }
 }
 
-async function nocodb(path: string, init?: { method?: string; body?: unknown }) {
+const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * NocoDB limita a 5 solicitudes por segundo por usuario. Se serializan las
+ * llamadas con una separacion minima para no llegar al limite, en vez de
+ * dispararlas lo mas rapido posible y depender del reintento.
+ */
+const MIN_MS_ENTRE_LLAMADAS = 220
+let ultimaLlamada = 0
+let cola: Promise<unknown> = Promise.resolve()
+
+async function estrangular<T>(fn: () => Promise<T>): Promise<T> {
+  const turno = cola.then(async () => {
+    const espera = MIN_MS_ENTRE_LLAMADAS - (Date.now() - ultimaLlamada)
+    if (espera > 0) await dormir(espera)
+    ultimaLlamada = Date.now()
+    return fn()
+  })
+  // La cola no debe romperse si un turno falla; el error se propaga al llamador.
+  cola = turno.catch(() => undefined)
+  return turno as Promise<T>
+}
+
+const MAX_REINTENTOS_429 = 4
+
+async function nocodb(
+  path: string,
+  init?: { method?: string; body?: unknown }
+): Promise<any> {
+  return estrangular(async () => {
+    for (let intento = 0; ; intento++) {
+      const res = await peticion(path, init)
+      if (res.status !== 429) return res.parsed
+
+      if (intento >= MAX_REINTENTOS_429) {
+        throw new NocodbError(429, path, res.text)
+      }
+      // NocoDB pide esperar; se respeta Retry-After si viene, si no se sube
+      // en escalera. Es preferible tardar unos segundos a dejar un pedido
+      // espejado a medias.
+      const retryAfter = Number(res.retryAfter)
+      const espera = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : Math.min(30000, 1000 * Math.pow(2, intento))
+      console.log(`${LOG} 429 en ${path}, reintento ${intento + 1} en ${espera}ms`)
+      await dormir(espera)
+    }
+  })
+}
+
+async function peticion(path: string, init?: { method?: string; body?: unknown }) {
   const res = await fetch(`${NOCODB_URL}${path}`, {
     method: init?.method || "GET",
     headers: { "xc-token": NOCODB_TOKEN, "Content-Type": "application/json" },
     body: init?.body ? JSON.stringify(init.body) : undefined,
   })
+  // El 429 no se lanza aqui: lo maneja el bucle de reintentos de nocodb().
+  if (res.status === 429) {
+    return {
+      status: 429,
+      text: await res.text(),
+      retryAfter: res.headers.get("retry-after"),
+      parsed: null,
+    }
+  }
   if (!res.ok) {
     throw new NocodbError(res.status, path, await res.text())
   }
-  return res.json()
+  return { status: res.status, text: "", retryAfter: null, parsed: await res.json() }
 }
 
 /** Los filtros deben ir sobre columnas propias; el campo de enlace no filtra. */
@@ -79,19 +138,40 @@ async function buscarUnoCompuesto(
   return (res.list || [])[0] || null
 }
 
-async function columnas(tabla: string): Promise<Record<string, string>> {
-  const meta = await nocodb(`/api/v2/meta/tables/${tabla}`)
-  const out: Record<string, string> = {}
-  for (const c of meta.columns || []) out[c.title] = c.id
-  return out
+
+/**
+ * El almacen que sincroniza con Medusa no cambia entre pedidos. Se cachea
+ * con vencimiento corto, para recoger un cambio de configuracion sin
+ * necesidad de redesplegar.
+ */
+let cacheAlmacen: { id: number | null; expira: number } | null = null
+const TTL_ALMACEN_MS = 5 * 60 * 1000
+
+async function almacenSincronizado(): Promise<number | null> {
+  if (!T_ALMACENES) return null
+  if (cacheAlmacen && Date.now() < cacheAlmacen.expira) return cacheAlmacen.id
+  const alm = await buscarUno(T_ALMACENES, "sincroniza_medusa", "true")
+  const id = alm ? alm.Id : null
+  cacheAlmacen = { id, expira: Date.now() + TTL_ALMACEN_MS }
+  return id
 }
 
-async function enlazar(tabla: string, colId: string, registro: number, destino: number) {
-  await nocodb(`/api/v2/tables/${tabla}/links/${colId}/records/${registro}`, {
-    method: "POST",
-    body: [{ Id: destino }],
-  })
+/**
+ * Busca varios SKU en una sola llamada con el operador `in`, en vez de una
+ * llamada por linea del pedido. Devuelve un mapa sku -> registro.
+ */
+async function buscarProductosPorSku(tabla: string, skus: string[]) {
+  const mapa = new Map<string, any>()
+  const unicos = [...new Set(skus.filter(Boolean))]
+  if (!unicos.length) return mapa
+  const where = encodeURIComponent(`(sku,in,${unicos.join(",")})`)
+  const res = await nocodb(
+    `/api/v2/tables/${tabla}/records?where=${where}&limit=${unicos.length}`
+  )
+  for (const r of res.list || []) mapa.set(r.sku, r)
+  return mapa
 }
+
 
 function marcaDesdeCanal(nombre?: string): string {
   const n = (nombre || "").toLowerCase()
@@ -197,6 +277,9 @@ export const mirrorOrderToNocodbStep = createStep(
           costo_envio: Number(order.shipping_total ?? 0),
           total: Number(order.total ?? 0),
           notas: `Espejado desde Medusa. Canal: ${nombreCanal || "?"}`,
+          // El enlace al cliente se establece con la columna FK en el mismo
+          // insert, en vez de una llamada aparte al endpoint /links.
+          ...(clienteId ? { clientes_id: clienteId } : {}),
         },
       })
     } catch (err) {
@@ -209,25 +292,33 @@ export const mirrorOrderToNocodbStep = createStep(
     }
     const pedidoId: number = pedido.Id
 
-    const colPedidos = await columnas(T_PEDIDOS)
-    if (clienteId && colPedidos["cliente"]) {
-      await enlazar(T_PEDIDOS, colPedidos["cliente"], pedidoId, clienteId)
-    }
-
     // ---- almacen que sincroniza (de donde salio la mercancia)
-    let almacenId: number | null = null
-    if (T_ALMACENES) {
-      const alm = await buscarUno(T_ALMACENES, "sincroniza_medusa", "true")
-      almacenId = alm ? alm.Id : null
-    }
-
-    const colLineas = await columnas(T_PEDIDOS_LINEAS)
-    const colMov = T_MOVIMIENTOS ? await columnas(T_MOVIMIENTOS) : {}
+    const almacenId = await almacenSincronizado()
 
     let lineas = 0
     const sinProducto: string[] = []
+    const items = order.items || []
 
-    for (const item of order.items || []) {
+    // Un solo lookup para todos los SKU del pedido, en vez de uno por linea.
+    const skus = items
+      .map((i: any) => i.variant_sku || i?.variant?.sku)
+      .filter(Boolean) as string[]
+    const productosPorSku = T_PRODUCTOS
+      ? await buscarProductosPorSku(T_PRODUCTOS, skus)
+      : new Map<string, any>()
+
+    // Se arman todas las filas primero y se insertan en lote. Las relaciones
+    // se establecen escribiendo la columna FK dentro del mismo insert
+    // (verificado contra la API v2: al leer el registro, el campo de enlace
+    // ya viene resuelto), lo que elimina las llamadas de enlace una por una.
+    const filasLinea: any[] = []
+    const contexto: {
+      cantidad: number
+      costoUnitario: number
+      productoId: number | null
+    }[] = []
+
+    for (const item of items) {
       const sku: string | undefined = item.variant_sku || item?.variant?.sku
       const cantidad = Number(item.quantity) || 0
 
@@ -236,66 +327,76 @@ export const mirrorOrderToNocodbStep = createStep(
       // cambiar la utilidad de una venta ya hecha.
       let productoId: number | null = null
       let costoUnitario = 0
-      if (sku && T_PRODUCTOS) {
-        const prod = await buscarUno(T_PRODUCTOS, "sku", sku)
+      if (sku) {
+        const prod = productosPorSku.get(sku)
         if (prod) {
           productoId = prod.Id
           costoUnitario = Number(prod.costo_promedio_ponderado) || 0
-        } else {
+        } else if (T_PRODUCTOS) {
           sinProducto.push(sku)
         }
       }
 
-      const linea = await nocodb(`/api/v2/tables/${T_PEDIDOS_LINEAS}/records`, {
-        method: "POST",
-        body: {
-          descripcion: item.title || sku || "(sin titulo)",
-          cantidad,
-          precio_unitario: Number(item.unit_price ?? 0),
-          descuento: Number(item.discount_total ?? 0),
-          costo_unitario_venta: costoUnitario,
-        },
+      filasLinea.push({
+        descripcion: item.title || sku || "(sin titulo)",
+        cantidad,
+        precio_unitario: Number(item.unit_price ?? 0),
+        descuento: Number(item.discount_total ?? 0),
+        costo_unitario_venta: costoUnitario,
+        pedidos_facturacion_id: pedidoId,
+        ...(productoId ? { productos_id: productoId } : {}),
       })
-      const lineaId: number = linea.Id
-      if (colLineas["pedido"]) {
-        await enlazar(T_PEDIDOS_LINEAS, colLineas["pedido"], lineaId, pedidoId)
-      }
-      if (productoId && colLineas["producto"]) {
-        await enlazar(T_PEDIDOS_LINEAS, colLineas["producto"], lineaId, productoId)
-      }
-      lineas++
+      contexto.push({ cantidad, costoUnitario, productoId })
+    }
 
-      // ---- asiento en el ledger, YA sincronizado
-      if (T_MOVIMIENTOS && productoId && almacenId && cantidad > 0) {
-        const mov = await nocodb(`/api/v2/tables/${T_MOVIMIENTOS}/records`, {
-          method: "POST",
-          body: {
-            referencia: String(order.display_id ?? order.id),
-            tipo_movimiento: "Salida Venta",
-            cantidad: -cantidad,
-            origen_movimiento: "Medusa",
-            confirmado: true,
-            // Medusa ya descontó: se marca empujado para que el puente lo
-            // ignore y no reste una segunda vez.
-            empujado_a_medusa: true,
-            costo_unitario_manual: costoUnitario,
-            documento_ref: order.id,
-            notas: "Salida generada por venta en tienda web.",
-          },
-        })
-        const movId: number = mov.Id
-        for (const [campo, destino] of [
-          ["producto", productoId],
-          ["almacen", almacenId],
-          ["pedido", pedidoId],
-          ["linea_pedido", lineaId],
-        ] as [string, number][]) {
-          if (colMov[campo]) {
-            await enlazar(T_MOVIMIENTOS, colMov[campo], movId, destino)
-          }
+    if (filasLinea.length) {
+      // El insert masivo devuelve los Id en el mismo orden de envio
+      // (verificado contra la API v2), asi que el indice alinea cada Id
+      // con su contexto.
+      const creadas = await nocodb(`/api/v2/tables/${T_PEDIDOS_LINEAS}/records`, {
+        method: "POST",
+        body: filasLinea,
+      })
+      const idsLinea: number[] = (Array.isArray(creadas) ? creadas : [creadas]).map(
+        (r: any) => r.Id
+      )
+      lineas = idsLinea.length
+
+      // ---- asientos en el ledger, YA sincronizados
+      if (T_MOVIMIENTOS && almacenId) {
+        const filasMov = contexto
+          .map((c, idx) =>
+            c.productoId && c.cantidad > 0
+              ? {
+                  referencia: String(order.display_id ?? order.id),
+                  tipo_movimiento: "Salida Venta",
+                  cantidad: -c.cantidad,
+                  origen_movimiento: "Medusa",
+                  confirmado: true,
+                  // Medusa ya descontó: se marca empujado para que el puente
+                  // lo ignore y no reste una segunda vez.
+                  empujado_a_medusa: true,
+                  costo_unitario_manual: c.costoUnitario,
+                  documento_ref: order.id,
+                  notas: "Salida generada por venta en tienda web.",
+                  productos_id: c.productoId,
+                  almacenes_id: almacenId,
+                  pedidos_facturacion_id: pedidoId,
+                  pedidos_lineas_id: idsLinea[idx],
+                }
+              : null
+          )
+          .filter(Boolean)
+
+        if (filasMov.length) {
+          await nocodb(`/api/v2/tables/${T_MOVIMIENTOS}/records`, {
+            method: "POST",
+            body: filasMov,
+          })
         }
       }
     }
+
 
     console.log(
       `${LOG} pedido ${order.display_id}: ${lineas} lineas espejadas` +
