@@ -8,8 +8,8 @@
 import { ExecArgs } from "@medusajs/framework/types";
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import { updateProductsWorkflow } from "@medusajs/medusa/core-flows";
+import { IMAGE_BASE as BASE } from "../lib/image-base";
 
-const BASE = "https://hitair-colombia-storefront-production.up.railway.app/product-details";
 
 export default async function updateHdsMsImages({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
